@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PGL AI Pricing Assistant</title>
-  <meta name="description" content="Trợ lý AI tra cứu báo giá thử nghiệm Phúc Gia Lab">
+  <title>PGL AI Pricing Assistant (Offline Mode)</title>
+  <meta name="description" content="Trợ lý tra cứu báo giá thử nghiệm Phúc Gia Lab">
   
   <script src="https://cdn.tailwindcss.com"></script>
   
@@ -28,9 +28,6 @@
     ::-webkit-scrollbar-track { background: #f1f5f9; }
     ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
     ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-    
-    /* Error Banner Style */
-    #error-banner { display: none; padding: 20px; background: #fee2e2; color: #991b1b; text-align: center; border-bottom: 1px solid #f87171; position: fixed; top: 0; left: 0; width: 100%; z-index: 9999; }
   </style>
 
   <script type="importmap">
@@ -39,73 +36,311 @@
       "react": "https://esm.sh/react@18.2.0",
       "react-dom": "https://esm.sh/react-dom@18.2.0",
       "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
-      "@google/generative-ai": "https://esm.sh/@google/generative-ai@0.21.0",
       "lucide-react": "https://esm.sh/lucide-react@0.294.0?external=react",
       "htm": "https://esm.sh/htm@3.1.1"
     }
   }
   </script>
-
-  <script>
-    window.onerror = function(message, source, lineno, colno, error) {
-      const banner = document.getElementById('error-banner');
-      if (banner) {
-        banner.style.display = 'block';
-        banner.innerHTML = `<strong>Lỗi hệ thống:</strong> ${message}<br><small>${source}:${lineno}</small>`;
-      }
-    };
-  </script>
 </head>
 <body>
-  <div id="error-banner"></div>
   <div id="root"></div>
 
   <script type="module">
-    import React, { useState, useEffect } from 'react';
+    import React, { useState, useMemo } from 'react';
     import ReactDOM from 'react-dom/client';
-    import { GoogleGenerativeAI } from '@google/generative-ai';
     import { 
-      Search, Calculator, FileText, Settings, Info, Loader2, AlertCircle, Copy, Check, Key, ShieldCheck, X, Printer
+      Search, Calculator, FileText, Database, Check, Copy, Printer, ShieldCheck, Box
     } from 'lucide-react';
     import htm from 'htm';
 
     const html = htm.bind(React.createElement);
 
-    // --- CONFIGURATION ---
-    // Điền API Key của bạn vào đây nếu muốn hard-code (không khuyến khích public lên github)
-    const RUNTIME_API_KEY = ""; 
+    // --- DỮ LIỆU BÁO GIÁ (LOCAL DATABASE) ---
+    // Để cập nhật, bạn chỉnh sửa trực tiếp mảng này
+    const DATA_SOURCE = [
+      // 1. CHỨNG NHẬN HỢP QUY (QCVN 9:2012)
+      { category: "Chứng nhận Hợp quy", regulation: "QCVN 9:2012/BKHCN", product_name: "Điều hòa không khí (Thường)", price_vnd: 2000000, price_usd: 77, notes: "Hiệu lực 3 năm" },
+      { category: "Chứng nhận Hợp quy", regulation: "QCVN 9:2012/BKHCN", product_name: "Điều hòa Multi (1 mẹ 2 con)", price_vnd: 3000000, price_usd: 115, notes: "Thêm 1 mặt lạnh +1.000.000 VNĐ" },
+      { category: "Chứng nhận Hợp quy", regulation: "QCVN 9:2012/BKHCN", product_name: "Tủ lạnh / Tủ giữ lạnh thương mại", price_vnd: 2000000, price_usd: 77, notes: "Thiết bị gia dụng" },
+      { category: "Chứng nhận Hợp quy", regulation: "QCVN 9:2012/BKHCN", product_name: "Máy giặt gia dụng", price_vnd: 2000000, price_usd: 77, notes: "" },
+      { category: "Chứng nhận Hợp quy", regulation: "QCVN 9:2012/BKHCN", product_name: "Máy sấy tóc / Máy xay sinh tố / Máy ép", price_vnd: 2000000, price_usd: 77, notes: "" },
+      { category: "Chứng nhận Hợp quy", regulation: "QCVN 9:2012/BKHCN", product_name: "Lò vi sóng / Bếp điện", price_vnd: 2000000, price_usd: 77, notes: "" },
 
-    // --- DATA CONTEXT ---
-    const PGL_PRICING_CONTEXT = `
-[DỮ LIỆU BÁO GIÁ TỪ PDF - SỐ: 26010201/PGL-BG - NGÀY: 02/01/2026]
+      // 2. HỢP QUY Ổ CẮM & DÂY (QCVN 4 & 25)
+      { category: "Chứng nhận Hợp quy", regulation: "QCVN 25:2025/BKHCN", product_name: "Ổ cắm / Phích cắm / Dây nguồn (Phương thức 1)", price_vnd: 5000000, price_usd: 0, notes: "Chứng nhận theo loại (Type test)" },
+      { category: "Đánh giá nhà máy", regulation: "Phương thức 5", product_name: "Đánh giá quá trình SX (Trong nước)", price_vnd: 30000000, price_usd: 0, notes: "Chi phí giám sát: 15.000.000 VNĐ" },
+      { category: "Đánh giá nhà máy", regulation: "Phương thức 5", product_name: "Đánh giá quá trình SX (Nước ngoài)", price_vnd: 50000000, price_usd: 0, notes: "Chi phí giám sát: 25.000.000 VNĐ" },
+      { category: "Chứng nhận Lô hàng", regulation: "Phương thức 7", product_name: "Lô hàng 1-5 model (An toàn điện)", price_vnd: 3000000, price_usd: 0, notes: "QCVN 4:2009/BKHCN" },
+      { category: "Chứng nhận Lô hàng", regulation: "Phương thức 7", product_name: "Lô hàng >15 model (An toàn điện)", price_vnd: 6000000, price_usd: 0, notes: "QCVN 4:2009/BKHCN" },
 
-1. CHỨNG NHẬN HỢP QUY (QCVN 9:2012/BKHCN - Thiết bị gia dụng):
-Điều hòa thường: 2.000.000 VNĐ (77 USD).
-Điều hòa Multi (1 mẹ 2 con): 3.000.000 VNĐ (115 USD). Thêm 1 mặt lạnh cộng thêm 1.000.000 VNĐ.
-Đồng giá 2.000.000 VNĐ (77 USD) cho các sản phẩm: Tủ lạnh, Tủ giữ lạnh thương mại, Lò vi sóng, Bếp điện, Máy xay sinh tố, Máy xay thịt, Máy ép trái cây, Máy đánh trứng, Máy sấy tóc, Bình nước nóng tức thời, Máy giặt, Máy khoan tay, Máy hút bụi.
-Phí cấp lại bản gốc tiếp theo: 500.000 VNĐ.
+      // 3. HIỆU SUẤT NĂNG LƯỢNG (VNEEP)
+      { category: "Thử nghiệm VNEEP", regulation: "TCVN 7830:2021", product_name: "Điều hòa Non-Inverter (<= 60.000 BTU)", price_vnd: 15000000, price_usd: 0, notes: "" },
+      { category: "Thử nghiệm VNEEP", regulation: "TCVN 7830:2021", product_name: "Điều hòa Inverter (<= 60.000 BTU)", price_vnd: 20000000, price_usd: 0, notes: "" },
+      { category: "Thử nghiệm VNEEP", regulation: "TCVN 7828:2016", product_name: "Tủ lạnh / Tủ đông / Tủ mát", price_vnd: 9000000, price_usd: 0, notes: "" },
+      { category: "Thử nghiệm VNEEP", regulation: "TCVN", product_name: "Máy giặt (Cửa trên/ngang <=10kg)", price_vnd: 2500000, price_usd: 0, notes: ">10kg giá 3.500.000 VNĐ" },
+      { category: "Thử nghiệm VNEEP", regulation: "TCVN", product_name: "Đèn LED", price_vnd: 4000000, price_usd: 0, notes: "" },
+      { category: "Thử nghiệm VNEEP", regulation: "TCVN", product_name: "Laptop / Máy tính bảng / PC", price_vnd: 3000000, price_usd: 0, notes: "" },
 
-2. CHỨNG NHẬN HỢP QUY (QCVN 4:2009/BKHCN & QCVN 25:2025/BKHCN):
-Phương thức 1 (QCVN 25:2025 - Ổ cắm/Phích cắm/Dây nguồn): 5.000.000 VNĐ.
-Phương thức 5 (Đánh giá nhà máy QCVN 4 & 25):
-Trong nước: Đánh giá quá trình SX: 30.000.000 VNĐ; Giám sát: 15.000.000 VNĐ.
-Nước ngoài: Đánh giá quá trình SX: 50.000.000 VNĐ; Giám sát: 25.000.000 VNĐ.
-Phương thức 7 (Theo lô hàng QCVN 4 - Safety):
-Lô 1-5 model: 3.000.000 VNĐ.
-Lô 6-10 model: 4.000.000 VNĐ.
-Lô 11-15 model: 5.000.000 VNĐ.
-Lô >15 model: 6.000.000 VNĐ.
-Phương thức 7 (Theo lô hàng QCVN 25:2025 - Ổ cắm/Phích cắm):
-Lô 1-5 model: 6.000.000 VNĐ.
-Lô 6-10 model: 7.000.000 VNĐ.
-Lô 11-15 model: 8.000.000 VNĐ.
-Lô >15 model: 9.000.000 VNĐ.
+      // 4. EMC (QCVN 9:2012)
+      { category: "Thử nghiệm EMC", regulation: "QCVN 9:2012/BKHCN", product_name: "Điều hòa 1 chiều (<24000 BTU)", price_vnd: 13000000, price_usd: 0, notes: "" },
+      { category: "Thử nghiệm EMC", regulation: "QCVN 9:2012/BKHCN", product_name: "Điều hòa 2 chiều hoặc >=24000 BTU", price_vnd: 15000000, price_usd: 0, notes: "" },
+      { category: "Thử nghiệm EMC", regulation: "QCVN 9:2012/BKHCN", product_name: "Máy giặt", price_vnd: 9000000, price_usd: 0, notes: "" },
+      { category: "Thử nghiệm EMC", regulation: "QCVN 9:2012/BKHCN", product_name: "Máy hút bụi (1 động cơ)", price_vnd: 5000000, price_usd: 0, notes: ">=2 động cơ: 7.000.000 VNĐ" },
 
-3. THỬ NGHIỆM HIỆU SUẤT NĂNG LƯỢNG (VNEEP):
-Điều hòa (Non-Inverter <= 60.000 BTU): 15.000.000 VNĐ.
-Điều hòa (Inverter <= 60.000 BTU): 20.000.000 VNĐ.
-Tủ lạnh, Tủ đông, Tủ mát, Tủ giữ lạnh thương mại: 9.000.000 VNĐ.
-Bếp từ/Hồng ngoại (1 vùng nấu): 3.000.000 VNĐ.
-Bếp từ/Hồng ngoại (2-3 vùng nấu): 5.000.000 VNĐ.
-Bếp từ/Hồng ngoại (4-5 vùng nấu): 7.000.000 VNĐ.
-Quạt điện: 2.000.000 VNĐ (<50W) hoặc 3
+      // 5. AN TOÀN ĐIỆN (Safety)
+      { category: "Thử nghiệm Safety", regulation: "QCVN 4:2009/BKHCN", product_name: "Nồi cơm / Ấm siêu tốc / Quạt / Bàn là", price_vnd: 6000000, price_usd: 0, notes: "Lần 2 trở đi: 2.000.000 VNĐ" },
+      { category: "Thử nghiệm Safety", regulation: "QCVN 132:2022 (IEC 62368)", product_name: "Thiết bị CNTT (Thân máy + 1 Adapter)", price_vnd: 23000000, price_usd: 0, notes: "Thử nghiệm trọn gói" },
+
+      // 7. VIỄN THÔNG (2026 Updated)
+      { category: "Thử nghiệm Viễn thông", regulation: "QCVN 134:2024", product_name: "Điện thoại 3G+4G (Có CA)", price_vnd: 1040000000, price_usd: 0, notes: "Giá cao do thiết bị đo phức tạp" },
+      { category: "Thử nghiệm Viễn thông", regulation: "QCVN 134:2024", product_name: "Điện thoại 5G (MIMO, CA)", price_vnd: 1300000000, price_usd: 0, notes: "Giảm 20% khi làm combo" },
+      { category: "Thử nghiệm Viễn thông", regulation: "QCVN 117:2023", product_name: "Thiết bị đầu cuối LTE (4G)", price_vnd: 18000000, price_usd: 0, notes: "" },
+      { category: "Thử nghiệm Viễn thông", regulation: "QCVN 54/65", product_name: "Thiết bị Wifi", price_vnd: 7000000, price_usd: 0, notes: "Dao động 7-10M tùy băng tần" },
+
+      // 8 & 9. PIN & Ổ CẮM
+      { category: "Thử nghiệm Pin", regulation: "QCVN 101:2020", product_name: "Pin Lithium (Pack + Cell)", price_vnd: 16000000, price_usd: 0, notes: "Yêu cầu: 22 pack + 38 cell" },
+      { category: "Thử nghiệm Ổ cắm", regulation: "QCVN 25:2025", product_name: "Ổ cắm / Phích cắm (Trọn gói)", price_vnd: 18000000, price_usd: 0, notes: "Thời gian: 15 ngày" }
+    ];
+
+    // --- UI COMPONENTS ---
+    const NavItem = ({ icon, label, active, onClick }) => html`
+      <button 
+        onClick=${onClick}
+        className=${`flex w-full items-center gap-3 px-4 py-3 rounded-xl transition-all ${active ? 'bg-blue-50 text-blue-600 font-bold shadow-sm ring-1 ring-blue-100' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}`}
+      >
+        <${icon} size=${18} />
+        <span className="text-sm text-left flex-1">${label}</span>
+      </button>
+    `;
+
+    const DetailItem = ({ label, value }) => html`
+      <div className="space-y-1">
+        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">${label}</span>
+        <p className="text-sm font-semibold text-slate-700">${value}</p>
+      </div>
+    `;
+
+    const PricingCard = ({ item, isCopied, onCopy }) => html`
+      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden hover:shadow-md transition-shadow group animate-slideUp break-inside-avoid">
+        <div className="p-6 md:p-8">
+          <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-6">
+            <div className="space-y-1">
+              <span className="inline-block px-3 py-1 bg-blue-100 text-blue-600 text-[10px] font-bold uppercase rounded-full tracking-wider mb-2">
+                ${item.category}
+              </span>
+              <h3 className="text-xl font-bold text-slate-800 leading-tight">${item.product_name}</h3>
+              <p className="text-sm text-slate-500 flex items-center gap-2">
+                <${FileText} size=${14} /> ${item.regulation}
+              </p>
+            </div>
+            
+            <div className="flex flex-col items-end gap-1">
+              <div className="text-2xl font-black text-blue-600">
+                ${item.price_vnd?.toLocaleString('vi-VN')} VNĐ
+              </div>
+              ${item.price_usd > 0 && html`
+                <div className="text-sm font-medium text-slate-400">
+                  ~ ${item.price_usd} USD
+                </div>
+              `}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 py-6 border-y border-slate-100">
+            <${DetailItem} label="Thời gian thực hiện" value=${item.execution_time || "Liên hệ PGL"} />
+            <${DetailItem} label="Mẫu yêu cầu" value=${item.sample_required || "Theo quy định"} />
+            <${DetailItem} label="VAT (5%)" value="Chưa bao gồm" />
+          </div>
+
+          ${item.notes && html`
+            <div className="mt-6">
+              <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Ghi chú chi tiết</h4>
+              <p className="text-sm text-slate-600 leading-relaxed bg-slate-50 p-4 rounded-2xl italic">
+                "${item.notes}"
+              </p>
+            </div>
+          `}
+        </div>
+
+        <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between no-print">
+          <span className="text-[10px] text-slate-400 font-medium">Data Source: PGL 2026</span>
+          <button
+            onClick=${onCopy}
+            className=${`flex items-center gap-2 text-xs font-bold transition-all px-4 py-2 rounded-full border ${isCopied ? 'bg-green-100 border-green-200 text-green-600' : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'}`}
+          >
+            <${isCopied ? Check : Copy} size=${14} />
+            ${isCopied ? 'Đã sao chép' : 'Copy JSON'}
+          </button>
+        </div>
+      </div>
+    `;
+
+    const App = () => {
+      const [query, setQuery] = useState('');
+      const [results, setResults] = useState([]);
+      const [hasSearched, setHasSearched] = useState(false);
+      const [copiedIndex, setCopiedIndex] = useState(null);
+      const [activeTab, setActiveTab] = useState('search');
+
+      // --- LOGIC TÌM KIẾM CỤC BỘ (LOCAL SEARCH) ---
+      const handleSearch = (e) => {
+        if (e) e.preventDefault();
+        if (!query.trim()) return;
+
+        setHasSearched(true);
+        
+        // Chuẩn hóa từ khóa: chữ thường, bỏ dấu tiếng Việt
+        const normalize = (str) => str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        const terms = normalize(query).split(" ").filter(t => t.trim());
+
+        // Lọc dữ liệu
+        const filtered = DATA_SOURCE.filter(item => {
+          const content = normalize(`${item.product_name} ${item.regulation} ${item.category} ${item.notes}`);
+          // Logic AND: Tất cả từ khóa phải xuất hiện trong nội dung
+          return terms.every(term => content.includes(term));
+        });
+
+        setResults(filtered);
+      };
+
+      const copyToClipboard = (json, index) => {
+        navigator.clipboard.writeText(json).then(() => {
+          setCopiedIndex(index);
+          setTimeout(() => setCopiedIndex(null), 2000);
+        });
+      };
+
+      const handlePrint = () => {
+        window.print();
+      }
+
+      return html`
+        <div className="min-h-screen flex flex-col md:flex-row bg-slate-50 text-slate-900 font-sans">
+          <aside className="w-full md:w-64 bg-white border-r border-slate-200 p-6 flex flex-col gap-8 md:fixed md:h-full z-20 no-print">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center text-white shadow-lg shadow-blue-200">
+                <${Calculator} size=${24} />
+              </div>
+              <div>
+                <h1 className="font-bold text-lg text-slate-800 tracking-tight">PGL AI</h1>
+                <p className="text-xs text-slate-500 font-medium">Offline Version v1.0</p>
+              </div>
+            </div>
+
+            <nav className="flex flex-col gap-2">
+              <${NavItem} icon=${Search} label="Tra cứu báo giá" active=${activeTab === 'search'} onClick=${() => setActiveTab('search')} />
+              <${NavItem} icon=${Database} label="Dữ liệu gốc" active=${activeTab === 'data'} onClick=${() => setActiveTab('data')} />
+            </nav>
+
+            <div className="mt-auto bg-green-50 p-4 rounded-xl border border-green-100">
+              <h3 className="text-xs font-bold text-green-800 mb-2 uppercase tracking-wider flex items-center gap-1">
+                <${ShieldCheck} size=${12}/> Ready to use
+              </h3>
+              <p className="text-[10px] text-green-700">
+                Dữ liệu được tích hợp sẵn. Không cần mạng internet hoặc API Key.
+              </p>
+            </div>
+          </aside>
+
+          <main className="flex-1 md:ml-64 min-h-screen flex flex-col print:ml-0">
+            <header className="h-16 bg-white/80 backdrop-blur-md border-b border-slate-200 px-6 md:px-8 flex items-center justify-between sticky top-0 z-10 no-print">
+              <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
+                Trung tâm dữ liệu PGL
+              </h2>
+              <div className="flex items-center gap-4">
+                <span className="hidden sm:inline-block text-xs font-medium text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
+                  Database: 02/01/2026
+                </span>
+                <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 text-xs font-bold">
+                  OFF
+                </div>
+              </div>
+            </header>
+
+            <div className="max-w-5xl mx-auto w-full p-6 md:p-8 flex-1">
+              ${activeTab === 'search' ? html`
+                <div className="animate-fadeIn">
+                  <div className="mb-10 text-center md:text-left no-print">
+                    <h1 className="text-3xl md:text-4xl font-extrabold text-slate-800 mb-4 tracking-tight">Tra cứu báo giá dịch vụ</h1>
+                    <p className="text-slate-500 max-w-2xl leading-relaxed text-lg">
+                      Nhập tên thiết bị (ví dụ: "điều hòa", "pin", "đèn led") để tìm kiếm trong cơ sở dữ liệu báo giá niêm yết 2026.
+                    </p>
+
+                    <form onSubmit=${handleSearch} className="mt-8 flex flex-col sm:flex-row gap-3 max-w-3xl">
+                      <div className="relative flex-1 group">
+                        <${Search} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size=${22} />
+                        <input
+                          type="text"
+                          placeholder="Nhập từ khóa tìm kiếm..."
+                          className="w-full pl-12 pr-4 py-4 bg-white border-2 border-slate-200 rounded-2xl focus:outline-none focus:border-blue-500 focus:shadow-lg focus:shadow-blue-50 transition-all text-slate-800 text-lg shadow-sm placeholder:text-slate-300"
+                          value=${query}
+                          onChange=${(e) => setQuery(e.target.value)}
+                        />
+                      </div>
+                      <button
+                        type="submit"
+                        disabled=${!query.trim()}
+                        className="px-8 py-4 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-bold rounded-2xl shadow-lg shadow-blue-200 hover:shadow-blue-300 hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2 min-w-[140px]"
+                      >
+                        Tra cứu
+                      </button>
+                    </form>
+                  </div>
+
+                  <div className="hidden print-only mb-8 text-center border-b pb-4">
+                      <h1 className="text-2xl font-bold uppercase mb-2">Bảng báo giá dịch vụ PGL</h1>
+                      <p>Ngày tra cứu: ${new Date().toLocaleDateString('vi-VN')}</p>
+                      <p>Từ khóa: "${query}"</p>
+                  </div>
+
+                  <div>
+                    ${hasSearched && results.length > 0 && html`
+                      <div className="flex justify-between items-center mb-4 no-print animate-fadeIn">
+                         <span className="text-sm font-medium text-slate-500">Tìm thấy ${results.length} kết quả</span>
+                         <button onClick=${handlePrint} className="flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-blue-600 bg-white hover:bg-blue-50 px-4 py-2 rounded-lg border border-slate-200 transition-colors">
+                           <${Printer} size=${16} /> In kết quả
+                         </button>
+                      </div>
+                    `}
+                
+                    <div className="grid grid-cols-1 gap-6 pb-20">
+                      ${results.length > 0 ? results.map((item, idx) => html`
+                        <${PricingCard}
+                          key=${idx}
+                          item=${item}
+                          isCopied=${copiedIndex === idx}
+                          onCopy=${() => copyToClipboard(JSON.stringify(item, null, 2), idx)}
+                        />
+                      `) : (hasSearched && html`
+                        <div className="py-20 text-center text-slate-400 bg-white rounded-3xl border-2 border-dashed border-slate-200 animate-fadeIn no-print">
+                          <${Box} size=${64} className="mx-auto mb-4 text-slate-200" />
+                          <p className="text-xl font-bold text-slate-600 mb-2">Không tìm thấy kết quả</p>
+                          <p className="text-sm text-slate-400">Thử từ khóa khác như "máy giặt", "QCVN", "pin"...</p>
+                        </div>
+                      `)}
+                    </div>
+                  </div>
+                </div>
+              ` : html`
+                <div className="animate-fadeIn">
+                   <h2 className="text-2xl font-bold text-slate-800 mb-6">Dữ liệu gốc (JSON)</h2>
+                   <div className="bg-slate-900 rounded-xl p-6 overflow-x-auto shadow-inner">
+                      <pre className="text-xs text-green-400 font-mono leading-relaxed">${JSON.stringify(DATA_SOURCE, null, 2)}</pre>
+                   </div>
+                   <p className="mt-4 text-sm text-slate-500 italic">
+                     * Đây là dữ liệu được sử dụng để tra cứu. Bạn có thể chỉnh sửa mảng DATA_SOURCE trong file HTML để cập nhật giá.
+                   </p>
+                </div>
+              `}
+            </div>
+          </main>
+        </div>
+      `;
+    };
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(html`<${App} />`);
+  </script>
+</body>
+</html>
