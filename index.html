@@ -32,30 +32,32 @@
       from { opacity: 0; transform: translateY(20px); }
       to { opacity: 1; transform: translateY(0); }
     }
+    
+    /* Print Styles */
+    @media print {
+      body { background-color: white; }
+      aside, header, form, .no-print { display: none !important; }
+      main { margin: 0 !important; padding: 0 !important; }
+      .print-only { display: block !important; }
+      .shadow-sm, .shadow-md, .shadow-lg { box-shadow: none !important; }
+      .border { border: 1px solid #ddd !important; }
+    }
+    
     /* Custom Scrollbar */
-    ::-webkit-scrollbar {
-      width: 8px;
-    }
-    ::-webkit-scrollbar-track {
-      background: #f1f5f9; 
-    }
-    ::-webkit-scrollbar-thumb {
-      background: #cbd5e1; 
-      border-radius: 4px;
-    }
-    ::-webkit-scrollbar-thumb:hover {
-      background: #94a3b8; 
-    }
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
   </style>
 
-  <!-- Import Map -->
+  <!-- Import Map - FIX: Cập nhật @google/generative-ai lên phiên bản mới nhất (0.21.0) -->
   <script type="importmap">
   {
     "imports": {
       "react": "https://esm.sh/react@19.0.0",
       "react-dom": "https://esm.sh/react-dom@19.0.0",
       "react-dom/client": "https://esm.sh/react-dom@19.0.0/client",
-      "@google/genai": "https://esm.sh/@google/genai@0.1.1",
+      "@google/generative-ai": "https://esm.sh/@google/generative-ai@0.21.0",
       "lucide-react": "https://esm.sh/lucide-react@0.460.0?external=react",
       "htm": "https://esm.sh/htm@3.1.1"
     }
@@ -68,16 +70,15 @@
   <script type="module">
     import React, { useState, useEffect } from 'react';
     import ReactDOM from 'react-dom/client';
-    import { GoogleGenAI } from '@google/genai';
+    import { GoogleGenerativeAI } from '@google/generative-ai';
     import { 
-      Search, Calculator, FileText, Settings, Info, Loader2, AlertCircle, Copy, Check, Key, ShieldCheck, X
+      Search, Calculator, FileText, Settings, Info, Loader2, AlertCircle, Copy, Check, Key, ShieldCheck, X, Printer
     } from 'lucide-react';
     import htm from 'htm';
 
     const html = htm.bind(React.createElement);
 
     // --- CONFIGURATION ---
-    // Để trống để runtime tự inject hoặc người dùng tự nhập
     const RUNTIME_API_KEY = ""; 
 
     // --- DATA CONTEXT ---
@@ -181,59 +182,56 @@ Phí thử mẫu không đạt (Fail): Hỗ trợ thu 50% phí.
 
     // --- GEMINI SERVICE ---
     const searchPricing = async (query, userApiKey) => {
-      // Ưu tiên key runtime nếu có, nếu không dùng key người dùng nhập
       const finalKey = RUNTIME_API_KEY || userApiKey;
-      
-      if (!finalKey) {
-        throw new Error("Vui lòng nhập API Key để tiếp tục.");
-      }
+      if (!finalKey) throw new Error("Vui lòng nhập API Key để tiếp tục.");
 
-      const ai = new GoogleGenAI({ apiKey: finalKey });
+      const genAI = new GoogleGenerativeAI(finalKey);
       
-      // Sử dụng model mới nhất
-      const response = await ai.models.generateContent({
-        model: "gemini-2.0-flash", // Update to a widely available flash model
-        contents: `Bạn là Trợ lý AI chuyên trách về dữ liệu báo giá của Công ty Cổ phần Phòng thử nghiệm Phúc Gia (PGL). 
+      const model = genAI.getGenerativeModel({ 
+        model: "gemini-1.5-flash",
+        generationConfig: {
+          responseMimeType: "application/json",
+        }
+      });
+
+      const prompt = `Bạn là Trợ lý AI chuyên trách về dữ liệu báo giá của Công ty Cổ phần Phòng thử nghiệm Phúc Gia (PGL). 
         Hãy tra cứu báo giá cho sản phẩm: "${query}" dựa trên dữ liệu dưới đây.
 
-        NGUYÊN TẮC QUAN TRỌNG:
-        1. Chính xác: Chỉ sử dụng thông tin có trong phần [DỮ LIỆU BÁO GIÁ TỪ PDF]. Tuyệt đối không bịa đặt giá.
-        2. Xử lý tiền tệ: Ưu tiên lấy số liệu VNĐ.
-        3. VAT: Các đơn giá trong tài liệu chưa bao gồm thuế VAT (mặc định là 5%). Ghi chú điều này vào trường 'notes'.
-        4. Phân loại: Phân biệt rõ ràng giữa phí "Chứng nhận" (Certification) và phí "Thử nghiệm" (Testing).
-        5. Quy tắc tìm kiếm: Nếu người dùng hỏi chung chung, hãy liệt kê cả phí chứng nhận và phí thử nghiệm liên quan.
+        NGUYÊN TẮC:
+        1. Chính xác tuyệt đối theo [DỮ LIỆU BÁO GIÁ].
+        2. Phân biệt phí "Chứng nhận" và "Thử nghiệm".
+        3. Nếu tìm thấy nhiều loại phí, hãy liệt kê hết.
+        4. Trả về JSON array thuần túy, không markdown.
         
         DỮ LIỆU BÁO GIÁ:
         ${PGL_PRICING_CONTEXT}
-        `,
-        config: {
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: "ARRAY",
-            items: {
-              type: "OBJECT",
-              properties: {
-                category: { type: "STRING" },
-                regulation: { type: "STRING" },
-                product_name: { type: "STRING" },
-                price_vnd: { type: "INTEGER" },
-                price_usd: { type: "INTEGER" },
-                execution_time: { type: "STRING" },
-                sample_required: { type: "STRING" },
-                notes: { type: "STRING" },
-              },
-              required: ["category", "regulation", "product_name", "price_vnd", "notes"],
-            },
-          },
-        },
-      });
+
+        Output JSON format:
+        [
+          {
+            "category": "Loại phí (Thử nghiệm/Chứng nhận)",
+            "regulation": "QCVN tương ứng",
+            "product_name": "Tên sản phẩm chi tiết",
+            "price_vnd": 1000000,
+            "price_usd": 0,
+            "execution_time": "Thời gian (nếu có)",
+            "sample_required": "Số lượng mẫu (nếu có)",
+            "notes": "Ghi chú thêm"
+          }
+        ]
+      `;
 
       try {
-        const text = response.text();
-        return JSON.parse(text || "[]");
+        const result = await model.generateContent(prompt);
+        const text = result.response.text(); 
+        return JSON.parse(text);
       } catch (err) {
-        console.error("Failed to parse AI response:", err);
-        return [];
+        console.error("AI Error:", err);
+        // Cải thiện thông báo lỗi để người dùng dễ hiểu hơn
+        if (err.message.includes('404') || err.message.includes('not found')) {
+            throw new Error("Lỗi kết nối Model AI (404). Vui lòng thử lại sau hoặc kiểm tra quyền API Key.");
+        }
+        throw new Error(err.message || "Không thể xử lý yêu cầu. Vui lòng thử lại sau.");
       }
     };
 
@@ -241,7 +239,7 @@ Phí thử mẫu không đạt (Fail): Hỗ trợ thu 50% phí.
     const NavItem = ({ icon, label, active, onClick }) => html`
       <button 
         onClick=${onClick}
-        className=${`flex w-full items-center gap-3 px-4 py-3 rounded-xl transition-all ${active ? 'bg-blue-50 text-blue-600 font-bold' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}`}
+        className=${`flex w-full items-center gap-3 px-4 py-3 rounded-xl transition-all ${active ? 'bg-blue-50 text-blue-600 font-bold shadow-sm ring-1 ring-blue-100' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}`}
       >
         <${icon} size=${18} />
         <span className="text-sm text-left flex-1">${label}</span>
@@ -256,7 +254,7 @@ Phí thử mẫu không đạt (Fail): Hỗ trợ thu 50% phí.
     `;
 
     const PricingCard = ({ item, isCopied, onCopy }) => html`
-      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden hover:shadow-md transition-shadow group animate-slideUp">
+      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden hover:shadow-md transition-shadow group animate-slideUp break-inside-avoid">
         <div className="p-6 md:p-8">
           <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-6">
             <div className="space-y-1">
@@ -295,7 +293,7 @@ Phí thử mẫu không đạt (Fail): Hỗ trợ thu 50% phí.
           </div>
         </div>
 
-        <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+        <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between no-print">
           <span className="text-[10px] text-slate-400 font-medium">Báo giá 2026 • PGL Lab</span>
           <button
             onClick=${onCopy}
@@ -314,7 +312,7 @@ Phí thử mẫu không đạt (Fail): Hỗ trợ thu 50% phí.
       if (!isOpen) return null;
 
       return html`
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fadeIn">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fadeIn no-print">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 animate-slideUp">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
@@ -373,7 +371,6 @@ Phí thử mẫu không đạt (Fail): Hỗ trợ thu 50% phí.
       const handleSearch = async (e) => {
         if (e) e.preventDefault();
         
-        // Nếu không có key từ cả runtime lẫn user input, hiện modal
         if (!hasRuntimeKey && !userApiKey) {
           setKeyModalOpen(true);
           return;
@@ -387,15 +384,12 @@ Phí thử mẫu không đạt (Fail): Hỗ trợ thu 50% phí.
           setState(prev => ({ ...prev, results: data, isSearching: false }));
         } catch (err) {
           console.error(err);
-          let errMsg = 'Đã có lỗi xảy ra khi tra cứu. Vui lòng thử lại.';
-          if (err.message.includes('API Key')) errMsg = 'API Key không hợp lệ hoặc bị thiếu.';
-          
+          let errMsg = err.message || 'Đã có lỗi xảy ra khi tra cứu.';
           setState(prev => ({ ...prev, error: errMsg, isSearching: false }));
         }
       };
 
       const copyToClipboard = (json, index) => {
-        // Fallback copy method
         const textArea = document.createElement("textarea");
         textArea.value = json;
         document.body.appendChild(textArea);
@@ -414,9 +408,7 @@ Phí thử mẫu không đạt (Fail): Hỗ trợ thu 50% phí.
         localStorage.setItem('pgl_gemini_key', key);
         setUserApiKey(key);
         setKeyModalOpen(false);
-        // Tự động tìm kiếm lại nếu có query
         if (state.query) {
-           // Small delay to let state update
            setTimeout(() => handleSearch(), 100);
         }
       };
@@ -427,17 +419,22 @@ Phí thử mẫu không đạt (Fail): Hỗ trợ thu 50% phí.
         alert('Đã xóa API Key khỏi trình duyệt.');
       };
 
+      // Handle Print
+      const handlePrint = () => {
+        window.print();
+      }
+
       return html`
         <div className="min-h-screen flex flex-col md:flex-row bg-slate-50 text-slate-900 font-sans">
           <!-- Sidebar -->
-          <aside className="w-full md:w-64 bg-white border-r border-slate-200 p-6 flex flex-col gap-8 md:fixed md:h-full z-20">
+          <aside className="w-full md:w-64 bg-white border-r border-slate-200 p-6 flex flex-col gap-8 md:fixed md:h-full z-20 no-print">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center text-white shadow-lg shadow-blue-200">
                 <${Calculator} size=${24} />
               </div>
               <div>
                 <h1 className="font-bold text-lg text-slate-800 tracking-tight">PGL AI</h1>
-                <p className="text-xs text-slate-500 font-medium">Pricing Assistant v2.2</p>
+                <p className="text-xs text-slate-500 font-medium">Pricing Assistant v2.3</p>
               </div>
             </div>
 
@@ -464,16 +461,16 @@ Phí thử mẫu không đạt (Fail): Hỗ trợ thu 50% phí.
           </aside>
 
           <!-- Main Content -->
-          <main className="flex-1 md:ml-64 min-h-screen flex flex-col">
+          <main className="flex-1 md:ml-64 min-h-screen flex flex-col print:ml-0">
             <!-- Header -->
-            <header className="h-16 bg-white/80 backdrop-blur-md border-b border-slate-200 px-6 md:px-8 flex items-center justify-between sticky top-0 z-10">
+            <header className="h-16 bg-white/80 backdrop-blur-md border-b border-slate-200 px-6 md:px-8 flex items-center justify-between sticky top-0 z-10 no-print">
               <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
                 Trung tâm dữ liệu PGL
               </h2>
               <div className="flex items-center gap-4">
                 <span className="hidden sm:inline-block text-xs font-medium text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
-                  Data Updated: 02/01/2026
+                  Cập nhật: 02/01/2026
                 </span>
                 <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-500 to-purple-500 shadow-md"></div>
               </div>
@@ -482,7 +479,7 @@ Phí thử mẫu không đạt (Fail): Hỗ trợ thu 50% phí.
             <div className="max-w-5xl mx-auto w-full p-6 md:p-8 flex-1">
               ${activeTab === 'search' ? html`
                 <div className="animate-fadeIn">
-                  <div className="mb-10 text-center md:text-left">
+                  <div className="mb-10 text-center md:text-left no-print">
                     <h1 className="text-3xl md:text-4xl font-extrabold text-slate-800 mb-4 tracking-tight">Tra cứu báo giá dịch vụ</h1>
                     <p className="text-slate-500 max-w-2xl leading-relaxed text-lg">
                       Nhập tên thiết bị hoặc tiêu chuẩn (QCVN) để AI trích xuất thông tin chính xác từ bảng giá niêm yết 2026.
@@ -509,8 +506,15 @@ Phí thử mẫu không đạt (Fail): Hỗ trợ thu 50% phí.
                     </form>
                   </div>
 
+                  <!-- Print Header (Only shows when printing) -->
+                  <div className="hidden print-only mb-8 text-center border-b pb-4">
+                     <h1 className="text-2xl font-bold uppercase mb-2">Bảng báo giá dịch vụ PGL</h1>
+                     <p>Ngày tra cứu: ${new Date().toLocaleDateString('vi-VN')}</p>
+                     <p>Từ khóa: "${state.query}"</p>
+                  </div>
+
                   ${state.error && html`
-                    <div className="mb-8 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3 text-red-700 animate-fadeIn">
+                    <div className="mb-8 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3 text-red-700 animate-fadeIn no-print">
                       <${AlertCircle} size=${20} className="shrink-0 mt-0.5" />
                       <div>
                         <p className="font-bold">Đã xảy ra lỗi</p>
@@ -520,7 +524,7 @@ Phí thử mẫu không đạt (Fail): Hỗ trợ thu 50% phí.
                   `}
 
                   ${state.isSearching ? html`
-                    <div className="py-20 flex flex-col items-center justify-center text-slate-400 gap-6 animate-fadeIn">
+                    <div className="py-20 flex flex-col items-center justify-center text-slate-400 gap-6 animate-fadeIn no-print">
                       <div className="relative">
                         <div className="w-16 h-16 border-4 border-blue-100 border-t-blue-500 rounded-full animate-spin"></div>
                         <div className="absolute inset-0 flex items-center justify-center">
@@ -530,26 +534,36 @@ Phí thử mẫu không đạt (Fail): Hỗ trợ thu 50% phí.
                       <p className="text-sm font-medium animate-pulse">Đang phân tích dữ liệu báo giá...</p>
                     </div>
                   ` : html`
-                    <div className="grid grid-cols-1 gap-6 pb-20">
-                      ${state.results.length > 0 ? state.results.map((item, idx) => html`
-                        <${PricingCard}
-                          key=${idx}
-                          item=${item}
-                          isCopied=${copiedIndex === idx}
-                          onCopy=${() => copyToClipboard(JSON.stringify(item, null, 2), idx)}
-                        />
-                      `) : (state.query && !state.error && html`
-                        <div className="py-20 text-center text-slate-400 bg-white rounded-3xl border-2 border-dashed border-slate-200 animate-fadeIn">
-                          <${ShieldCheck} size=${64} className="mx-auto mb-4 text-slate-200" />
-                          <p className="text-xl font-bold text-slate-600 mb-2">Không tìm thấy kết quả</p>
-                          <p className="text-sm text-slate-400">Hãy thử từ khóa khác như "Điều hòa", "Máy giặt", "QCVN 117".</p>
-                        </div>
-                      `)}
+                    <div>
+                       ${state.results.length > 0 && html`
+                         <div className="flex justify-end mb-4 no-print animate-fadeIn">
+                            <button onClick=${handlePrint} className="flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-blue-600 bg-white hover:bg-blue-50 px-4 py-2 rounded-lg border border-slate-200 transition-colors">
+                              <${Printer} size=${16} /> In kết quả
+                            </button>
+                         </div>
+                       `}
+                    
+                      <div className="grid grid-cols-1 gap-6 pb-20">
+                        ${state.results.length > 0 ? state.results.map((item, idx) => html`
+                          <${PricingCard}
+                            key=${idx}
+                            item=${item}
+                            isCopied=${copiedIndex === idx}
+                            onCopy=${() => copyToClipboard(JSON.stringify(item, null, 2), idx)}
+                          />
+                        `) : (state.query && !state.error && html`
+                          <div className="py-20 text-center text-slate-400 bg-white rounded-3xl border-2 border-dashed border-slate-200 animate-fadeIn no-print">
+                            <${ShieldCheck} size=${64} className="mx-auto mb-4 text-slate-200" />
+                            <p className="text-xl font-bold text-slate-600 mb-2">Không tìm thấy kết quả</p>
+                            <p className="text-sm text-slate-400">Hãy thử từ khóa khác như "Điều hòa", "Máy giặt", "QCVN 117".</p>
+                          </div>
+                        `)}
+                      </div>
                     </div>
                   `}
                 </div>
               ` : html`
-                <div className="flex flex-col items-center justify-center h-[60vh] text-slate-400 animate-fadeIn">
+                <div className="flex flex-col items-center justify-center h-[60vh] text-slate-400 animate-fadeIn no-print">
                   <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-4">
                     <${Settings} size=${32} />
                   </div>
