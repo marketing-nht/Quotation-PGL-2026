@@ -1,0 +1,401 @@
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PGL AI Pricing Assistant</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f8fafc;
+    }
+    .animate-fadeIn {
+      animation: fadeIn 0.3s ease-out forwards;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+  <script type="importmap">
+  {
+    "imports": {
+      "react": "https://esm.sh/react@19.0.0",
+      "react-dom": "https://esm.sh/react-dom@19.0.0",
+      "react-dom/client": "https://esm.sh/react-dom@19.0.0/client",
+      "@google/genai": "https://esm.sh/@google/genai@1.34.0",
+      "lucide-react": "https://esm.sh/lucide-react@0.460.0?external=react",
+      "htm": "https://esm.sh/htm@3.1.1"
+    }
+  }
+  </script>
+<link rel="stylesheet" href="/index.css">
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="module">
+    import React from 'react';
+    import ReactDOM from 'react-dom/client';
+    import { GoogleGenAI, Type } from '@google/genai';
+    import { 
+      Search, Calculator, FileText, Settings, Info, Loader2, AlertCircle, Copy, Check 
+    } from 'lucide-react';
+    import htm from 'htm';
+
+    const html = htm.bind(React.createElement);
+
+    // --- CONSTANTS ---
+    const PGL_PRICING_CONTEXT = `
+[DỮ LIỆU BÁO GIÁ TỪ PDF - SỐ: 26010201/PGL-BG - NGÀY: 02/01/2026]
+
+1. CHỨNG NHẬN HỢP QUY (QCVN 9:2012/BKHCN - Thiết bị gia dụng):
+Điều hòa thường: 2.000.000 VNĐ (77 USD).
+Điều hòa Multi (1 mẹ 2 con): 3.000.000 VNĐ (115 USD). Thêm 1 mặt lạnh cộng thêm 1.000.000 VNĐ.
+Đồng giá 2.000.000 VNĐ (77 USD) cho các sản phẩm: Tủ lạnh, Tủ giữ lạnh thương mại, Lò vi sóng, Bếp điện, Máy xay sinh tố, Máy xay thịt, Máy ép trái cây, Máy đánh trứng, Máy sấy tóc, Bình nước nóng tức thời, Máy giặt, Máy khoan tay, Máy hút bụi.
+Phí cấp lại bản gốc tiếp theo: 500.000 VNĐ.
+
+2. CHỨNG NHẬN HỢP QUY (QCVN 4:2009/BKHCN & QCVN 25:2025/BKHCN):
+Phương thức 1 (QCVN 25:2025 - Ổ cắm/Phích cắm/Dây nguồn): 5.000.000 VNĐ.
+Phương thức 5 (Đánh giá nhà máy QCVN 4 & 25):
+Trong nước: Đánh giá quá trình SX: 30.000.000 VNĐ; Giám sát: 15.000.000 VNĐ.
+Nước ngoài: Đánh giá quá trình SX: 50.000.000 VNĐ; Giám sát: 25.000.000 VNĐ.
+Phương thức 7 (Theo lô hàng QCVN 4 - Safety):
+Lô 1-5 model: 3.000.000 VNĐ.
+Lô 6-10 model: 4.000.000 VNĐ.
+Lô 11-15 model: 5.000.000 VNĐ.
+Lô >15 model: 6.000.000 VNĐ.
+Phương thức 7 (Theo lô hàng QCVN 25:2025 - Ổ cắm/Phích cắm):
+Lô 1-5 model: 6.000.000 VNĐ.
+Lô 6-10 model: 7.000.000 VNĐ.
+Lô 11-15 model: 8.000.000 VNĐ.
+Lô >15 model: 9.000.000 VNĐ.
+
+3. THỬ NGHIỆM HIỆU SUẤT NĂNG LƯỢNG (VNEEP):
+Điều hòa (Non-Inverter <= 60.000 BTU): 15.000.000 VNĐ.
+Điều hòa (Inverter <= 60.000 BTU): 20.000.000 VNĐ.
+Tủ lạnh, Tủ đông, Tủ mát, Tủ giữ lạnh thương mại: 9.000.000 VNĐ.
+Bếp từ/Hồng ngoại (1 vùng nấu): 3.000.000 VNĐ.
+Bếp từ/Hồng ngoại (2-3 vùng nấu): 5.000.000 VNĐ.
+Bếp từ/Hồng ngoại (4-5 vùng nấu): 7.000.000 VNĐ.
+Quạt điện: 2.000.000 VNĐ (<50W) hoặc 3.000.000 VNĐ (>=50W).
+Quạt trần: 4.000.000 VNĐ.
+Đèn LED: 4.000.000 VNĐ.
+Đèn đường LED: 7.000.000 VNĐ (<=100W) đến 13.000.000 VNĐ (>300W).
+Máy giặt (Cửa trên/ngang): 2.500.000 VNĐ (<=10kg); 3.500.000 VNĐ (>10kg).
+Nồi cơm điện: 2.000.000 VNĐ.
+Máy tính để bàn, Máy tính xách tay (Laptop), Máy tính bảng: 3.000.000 VNĐ.
+Màn hình máy tính: 1.500.000 VNĐ (<=40 inch); 2.500.000 VNĐ (>40 inch).
+Tivi (Máy thu hình): 3.500.000 VNĐ.
+Bình đun nước nóng dự trữ: 5.000.000 VNĐ (<70L); 7.000.000 VNĐ (>=70L).
+
+4. THỬ NGHIỆM HỢP QUY (QCVN 9:2012/BKHCN - EMC):
+Điều hòa 1 chiều (<24000 BTU): 13.000.000 VNĐ.
+Điều hòa 2 chiều hoặc >=24000 BTU: 15.000.000 VNĐ.
+Điều hòa Multi: 15.000.000 VNĐ (+2.000.000 VNĐ/mặt lạnh).
+Tủ lạnh, Tủ mát: 9.000.000 VNĐ.
+Lò vi sóng: 10.000.000 VNĐ.
+Bếp điện (1 vùng): 6.000.000 VNĐ; (>=2 vùng): 7.000.000 VNĐ.
+Máy xay, ép, đánh trứng, máy sấy tóc, máy khoan: 5.000.000 VNĐ.
+Máy hút bụi (1 động cơ): 5.000.000 VNĐ; (>=2 động cơ): 7.000.000 VNĐ.
+Máy giặt: 9.000.000 VNĐ.
+
+5. THỬ NGHIỆM AN TOÀN ĐIỆN (QCVN 4:2009 & QCVN 132:2022):
+Gia dụng (QCVN 4:2009):
+Bình nóng lạnh, Máy sấy tóc, Ấm siêu tốc, Nồi cơm, Quạt, Bàn là, Lò nướng: Lần đầu 6.000.000 VNĐ; Lần 2 trở đi 2.000.000 VNĐ.
+Lò vi sóng: Lần đầu 8.000.000 VNĐ.
+Thiết bị CNTT & Viễn thông (QCVN 132:2022 - IEC 62368):
+Gói cơ bản (Thân máy + 1 Adapter): 23.000.000 VNĐ.
+Phụ phí Adapter tích hợp thêm: +11.500.000 VNĐ.
+Phụ phí Adapter rời thêm: +5.000.000 - 7.000.000 VNĐ.
+Thiết bị chứa chất lỏng có áp suất: +20.000.000 VNĐ.
+
+6. THỬ NGHIỆM ĐÈN LED (QCVN 19:2019):
+Trọn gói QCVN 19 (ES+EMI+EMS+PBS): 25.000.000 VNĐ (chưa IP) hoặc 27.000.000 VNĐ (có IP).
+Thử lẻ: ES (5M), EMI (6M), EMS (9M), PBS (5M).
+
+7. THỬ NGHIỆM VIỄN THÔNG (CẬP NHẬT 2026):
+QCVN 134:2024/BTTTT (Điện thoại & Tablet):
+Điện thoại 3G+4G (Không CA): 860.000.000 VNĐ.
+Điện thoại 3G+4G (Có CA): 1.040.000.000 VNĐ.
+Điện thoại 3G+4G+5G (Không CA, MIMO): 1.125.000.000 VNĐ (Giảm 20% khi combo).
+Điện thoại 3G+4G+5G (Có MIMO, CA): 1.300.000.000 VNĐ (Giảm 20% khi combo).
+Máy tính bảng/Laptop (Chỉ Wifi): 290.000.000 VNĐ.
+Máy tính bảng (Có 4G/5G): Từ 435.000.000 VNĐ đến 980.000.000 VNĐ tùy cấu hình CA/MIMO.
+Các QCVN khác:
+QCVN 117:2023 (GSM/WCDMA): 12M. (LTE): 18M. (2 công nghệ): 26M. (3 công nghệ): 34M.
+QCVN 18:2022 (Non-5G): 7M. (5G - Combo QCVN 18, 127, 129): 500.000.000 VNĐ.
+QCVN 136:2025 (Mới): 25.000.000 VNĐ.
+Wifi (QCVN 54, 65): 7M - 10M.
+
+8. THỬ NGHIỆM Ổ CẮM, PHÍCH CẮM (QCVN 25:2025):
+Thử nghiệm trọn gói để chứng nhận hợp quy: 18.000.000 VNĐ (15 ngày).
+Thử nghiệm theo tiêu chuẩn yêu cầu: 8.000.000 VNĐ.
+
+9. PIN LITHIUM (QCVN 101:2020):
+Gói pin (Pack): 8.000.000 VNĐ (Cần 22 mẫu).
+Tế bào pin (Cell): 8.000.000 VNĐ (Cần 38 mẫu).
+Trọn gói (Pack + 1 Cell): 16.000.000 VNĐ.
+
+LƯU Ý CHUNG TỪ FILE:
+Giá chưa bao gồm VAT (5%).
+Hiệu lực báo giá: 30 ngày từ 02/01/2026.
+Phí thử nghiệm nhanh (gấp): Nhân 1.5 lần giá cơ sở.
+Phí thử mẫu không đạt (Fail): Hỗ trợ thu 50% phí.
+`;
+
+    // --- GEMINI SERVICE ---
+    const searchPricing = async (query) => {
+      const ai = new GoogleGenAI({ apiKey: window.process?.env?.API_KEY });
+      const response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: `Bạn là Trợ lý AI chuyên trách về dữ liệu báo giá của Công ty Cổ phần Phòng thử nghiệm Phúc Gia (PGL). 
+        Hãy tra cứu báo giá cho sản phẩm: "${query}" dựa trên dữ liệu dưới đây.
+
+        NGUYÊN TẮC QUAN TRỌNG:
+        1. Chính xác: Chỉ sử dụng thông tin có trong phần [DỮ LIỆU BÁO GIÁ TỪ PDF]. Tuyệt đối không bịa đặt giá.
+        2. Xử lý tiền tệ: Ưu tiên lấy số liệu VNĐ.
+        3. VAT: Các đơn giá trong tài liệu chưa bao gồm thuế VAT (mặc định là 5%). Ghi chú điều này vào trường 'notes'.
+        4. Phân loại: Phân biệt rõ ràng giữa phí "Chứng nhận" (Certification) và phí "Thử nghiệm" (Testing).
+        5. Quy tắc tìm kiếm: Nếu người dùng hỏi chung chung, hãy liệt kê cả phí chứng nhận và phí thử nghiệm liên quan.
+        
+        DỮ LIỆU BÁO GIÁ:
+        ${PGL_PRICING_CONTEXT}
+        `,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                category: { type: Type.STRING },
+                regulation: { type: Type.STRING },
+                product_name: { type: Type.STRING },
+                price_vnd: { type: Type.INTEGER },
+                price_usd: { type: Type.INTEGER },
+                execution_time: { type: Type.STRING },
+                sample_required: { type: Type.STRING },
+                notes: { type: Type.STRING },
+              },
+              required: ["category", "regulation", "product_name", "price_vnd", "notes"],
+            },
+          },
+        },
+      });
+
+      try {
+        return JSON.parse(response.text || "[]");
+      } catch (err) {
+        console.error("Failed to parse AI response:", err);
+        return [];
+      }
+    };
+
+    // --- UI COMPONENTS ---
+    const NavItem = ({ icon, label, active }) => html`
+      <button className=${`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${active ? 'bg-blue-50 text-blue-600 font-bold' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}`}>
+        <${icon} size=${18} />
+        <span className="text-sm">${label}</span>
+      </button>
+    `;
+
+    const DetailItem = ({ label, value }) => html`
+      <div className="space-y-1">
+        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">${label}</span>
+        <p className="text-sm font-semibold text-slate-700">${value}</p>
+      </div>
+    `;
+
+    const PricingCard = ({ item, isCopied, onCopy }) => html`
+      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden hover:shadow-md transition-shadow group animate-fadeIn">
+        <div className="p-6 md:p-8">
+          <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-6">
+            <div className="space-y-1">
+              <span className="inline-block px-3 py-1 bg-blue-100 text-blue-600 text-[10px] font-bold uppercase rounded-full tracking-wider mb-2">
+                ${item.category}
+              </span>
+              <h3 className="text-xl font-bold text-slate-800 leading-tight">${item.product_name}</h3>
+              <p className="text-sm text-slate-500 flex items-center gap-2">
+                <${FileText} size=${14} /> ${item.regulation}
+              </p>
+            </div>
+            
+            <div className="flex flex-col items-end gap-1">
+              <div className="text-2xl font-black text-blue-600">
+                ${item.price_vnd.toLocaleString('vi-VN')} VNĐ
+              </div>
+              ${item.price_usd > 0 && html`
+                <div className="text-sm font-medium text-slate-400">
+                  ~ ${item.price_usd} USD
+                </div>
+              `}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 py-6 border-y border-slate-100">
+            <${DetailItem} label="Thời gian thực hiện" value=${item.execution_time || "Liên hệ PGL"} />
+            <${DetailItem} label="Mẫu yêu cầu" value=${item.sample_required || "N/A"} />
+            <${DetailItem} label="VAT (5%)" value="Chưa bao gồm" />
+          </div>
+
+          <div className="mt-6">
+            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Ghi chú chi tiết</h4>
+            <p className="text-sm text-slate-600 leading-relaxed bg-slate-50 p-4 rounded-2xl italic">
+              "${item.notes}"
+            </p>
+          </div>
+        </div>
+
+        <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+          <span className="text-[10px] text-slate-400 font-medium">Báo giá 2026 • PGL Lab</span>
+          <button
+            onClick=${onCopy}
+            className=${`flex items-center gap-2 text-xs font-bold transition-all px-4 py-2 rounded-full border ${isCopied ? 'bg-green-100 border-green-200 text-green-600' : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'}`}
+          >
+            <${isCopied ? Check : Copy} size=${14} />
+            ${isCopied ? 'Đã sao chép' : 'Copy JSON'}
+          </button>
+        </div>
+      </div>
+    `;
+
+    const App = () => {
+      const [state, setState] = React.useState({
+        isSearching: false,
+        query: '',
+        results: [],
+        error: null,
+      });
+      const [copiedIndex, setCopiedIndex] = React.useState(null);
+
+      const handleSearch = async (e) => {
+        if (e) e.preventDefault();
+        if (!state.query.trim()) return;
+
+        setState(prev => ({ ...prev, isSearching: true, error: null }));
+        try {
+          const data = await searchPricing(state.query);
+          setState(prev => ({ ...prev, results: data, isSearching: false }));
+        } catch (err) {
+          setState(prev => ({ ...prev, error: 'Đã có lỗi xảy ra khi tra cứu. Vui lòng thử lại.', isSearching: false }));
+        }
+      };
+
+      const copyToClipboard = (json, index) => {
+        navigator.clipboard.writeText(json);
+        setCopiedIndex(index);
+        setTimeout(() => setCopiedIndex(null), 2000);
+      };
+
+      return html`
+        <div className="min-h-screen flex flex-col md:flex-row bg-slate-50 text-slate-900">
+          <aside className="w-full md:w-64 bg-white border-r border-slate-200 p-6 flex flex-col gap-8">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center text-white shadow-lg">
+                <${Calculator} size=${24} />
+              </div>
+              <div>
+                <h1 className="font-bold text-lg text-slate-800">PGL AI</h1>
+                <p className="text-xs text-slate-500 font-medium">Assistant v2.1</p>
+              </div>
+            </div>
+
+            <nav className="flex flex-col gap-1">
+              <${NavItem} icon=${Search} label="Tra cứu báo giá" active />
+              <${NavItem} icon=${FileText} label="Lịch sử yêu cầu" />
+              <${NavItem} icon=${Settings} label="Cấu hình hệ thống" />
+              <${NavItem} icon=${Info} label="Hướng dẫn sử dụng" />
+            </nav>
+
+            <div className="mt-auto bg-blue-50 p-4 rounded-xl border border-blue-100">
+              <h3 className="text-sm font-semibold text-blue-800 mb-1">Ghi chú quan trọng</h3>
+              <p className="text-xs text-blue-600 leading-relaxed">
+                Dữ liệu cập nhật 02/01/2026. Mọi báo giá chưa bao gồm 5% VAT.
+              </p>
+            </div>
+          </aside>
+
+          <main className="flex-1 overflow-auto">
+            <header className="h-16 bg-white border-b border-slate-200 px-8 flex items-center justify-between sticky top-0 z-10">
+              <h2 className="text-sm font-medium text-slate-500 uppercase tracking-wider">
+                Bảng điều khiển / Tra cứu báo giá
+              </h2>
+              <div className="flex items-center gap-4">
+                <span className="text-xs text-slate-400">Cập nhật: 02/01/2026</span>
+                <div className="w-8 h-8 rounded-full bg-slate-200 border border-slate-300"></div>
+              </div>
+            </header>
+
+            <div className="max-w-5xl mx-auto p-8">
+              <div className="mb-12">
+                <h1 className="text-3xl font-bold text-slate-800 mb-4">Tra cứu báo giá dịch vụ PGL</h1>
+                <p className="text-slate-500 max-w-2xl leading-relaxed">
+                  Trợ lý AI chuyên biệt cho Phúc Gia Laboratory. Nhập tên sản phẩm để trích xuất báo giá chính xác nhất.
+                </p>
+
+                <form onSubmit=${handleSearch} className="mt-8 flex flex-col sm:flex-row gap-3">
+                  <div className="relative flex-1 group">
+                    <${Search} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size=${20} />
+                    <input
+                      type="text"
+                      placeholder="Nhập thiết bị (VD: Smartphone, Pin Lithium, Đèn LED...)"
+                      className="w-full pl-12 pr-4 py-4 bg-white border-2 border-slate-200 rounded-2xl focus:outline-none focus:border-blue-500 transition-all text-slate-800 shadow-sm"
+                      value=${state.query}
+                      onChange=${(e) => setState(prev => ({ ...prev, query: e.target.value }))}
+                    />
+                  </div>
+                  <button
+                    disabled=${state.isSearching || !state.query.trim()}
+                    className="px-8 py-4 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white font-bold rounded-2xl shadow-lg shadow-blue-200 transition-all flex items-center justify-center gap-2 min-w-[160px]"
+                  >
+                    ${state.isSearching ? html`<${Loader2} className="animate-spin" size=${20} />` : 'Tìm kiếm AI'}
+                  </button>
+                </form>
+              </div>
+
+              ${state.error && html`
+                <div className="mb-8 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3 text-red-700">
+                  <${AlertCircle} size=${20} className="shrink-0 mt-0.5" />
+                  <p className="text-sm font-medium">${state.error}</p>
+                </div>
+              `}
+
+              ${state.isSearching ? html`
+                <div className="py-20 flex flex-col items-center justify-center text-slate-400 gap-4">
+                  <${Loader2} className="animate-spin text-blue-500" size=${48} />
+                  <p className="text-sm font-medium">AI đang xử lý dữ liệu báo giá...</p>
+                </div>
+              ` : html`
+                <div className="grid grid-cols-1 gap-6">
+                  ${state.results.length > 0 ? state.results.map((item, idx) => html`
+                    <${PricingCard}
+                      key=${idx}
+                      item=${item}
+                      isCopied=${copiedIndex === idx}
+                      onCopy=${() => copyToClipboard(JSON.stringify(item, null, 2), idx)}
+                    />
+                  `) : state.query && html`
+                    <div className="py-20 text-center text-slate-400 bg-white rounded-3xl border-2 border-dashed border-slate-200">
+                      <${Calculator} size=${48} className="mx-auto mb-4 opacity-10" />
+                      <p className="text-lg font-medium">Không tìm thấy báo giá phù hợp</p>
+                      <p className="text-sm">Thử tra cứu: "Smartphone", "Pin Lithium", "Điều hòa".</p>
+                    </div>
+                  `}
+                </div>
+              `}
+            </div>
+          </main>
+        </div>
+      `;
+    };
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(html`<${App} />`);
+  </script>
+<script type="module" src="/index.tsx"></script>
+</body>
+</html>
