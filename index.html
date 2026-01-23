@@ -55,51 +55,94 @@
 
     const html = htm.bind(React.createElement);
 
-    // --- DỮ LIỆU BÁO GIÁ (LOCAL DATABASE) ---
-    // Để cập nhật, bạn chỉnh sửa trực tiếp mảng này
+    // --- DỮ LIỆU BÁO GIÁ (CẬP NHẬT TỪ PDF NGÀY 20/01/2026) ---
     const DATA_SOURCE = [
-      // 1. CHỨNG NHẬN HỢP QUY (QCVN 9:2012)
-      { category: "Chứng nhận Hợp quy", regulation: "QCVN 9:2012/BKHCN", product_name: "Điều hòa không khí (Thường)", price_vnd: 2000000, price_usd: 77, notes: "Hiệu lực 3 năm" },
-      { category: "Chứng nhận Hợp quy", regulation: "QCVN 9:2012/BKHCN", product_name: "Điều hòa Multi (1 mẹ 2 con)", price_vnd: 3000000, price_usd: 115, notes: "Thêm 1 mặt lạnh +1.000.000 VNĐ" },
-      { category: "Chứng nhận Hợp quy", regulation: "QCVN 9:2012/BKHCN", product_name: "Tủ lạnh / Tủ giữ lạnh thương mại", price_vnd: 2000000, price_usd: 77, notes: "Thiết bị gia dụng" },
-      { category: "Chứng nhận Hợp quy", regulation: "QCVN 9:2012/BKHCN", product_name: "Máy giặt gia dụng", price_vnd: 2000000, price_usd: 77, notes: "" },
-      { category: "Chứng nhận Hợp quy", regulation: "QCVN 9:2012/BKHCN", product_name: "Máy sấy tóc / Máy xay sinh tố / Máy ép", price_vnd: 2000000, price_usd: 77, notes: "" },
-      { category: "Chứng nhận Hợp quy", regulation: "QCVN 9:2012/BKHCN", product_name: "Lò vi sóng / Bếp điện", price_vnd: 2000000, price_usd: 77, notes: "" },
+      // --- I. CHỨNG NHẬN HỢP QUY (QCVN 9:2012) ---
+      [cite_start]{ category: "Chứng nhận HQ", regulation: "QCVN 9:2012/BKHCN", product_name: "Điều hòa không khí (Thường)", price_vnd: 2000000, price_usd: 77, execution_time: "02-03 ngày", notes: "Chứng nhận hợp quy [cite: 94]" },
+      [cite_start]{ category: "Chứng nhận HQ", regulation: "QCVN 9:2012/BKHCN", product_name: "Điều hòa Multi (1 mẹ 2 con)", price_vnd: 3000000, price_usd: 115, execution_time: "02-03 ngày", notes: "Thêm 1 mặt lạnh cộng thêm 1.000.000 VNĐ [cite: 94]" },
+      [cite_start]{ category: "Chứng nhận HQ", regulation: "QCVN 9:2012/BKHCN", product_name: "Tủ lạnh / Tủ giữ lạnh thương mại", price_vnd: 2000000, price_usd: 77, execution_time: "02-03 ngày", notes: "Thiết bị gia dụng [cite: 94]" },
+      [cite_start]{ category: "Chứng nhận HQ", regulation: "QCVN 9:2012/BKHCN", product_name: "Lò vi sóng / Bếp điện", price_vnd: 2000000, price_usd: 77, execution_time: "02-03 ngày", notes: "[cite: 94]" },
+      [cite_start]{ category: "Chứng nhận HQ", regulation: "QCVN 9:2012/BKHCN", product_name: "Máy xay sinh tố / Máy xay thịt / Máy ép / Máy đánh trứng", price_vnd: 2000000, price_usd: 77, execution_time: "02-03 ngày", notes: "[cite: 94]" },
+      [cite_start]{ category: "Chứng nhận HQ", regulation: "QCVN 9:2012/BKHCN", product_name: "Máy sấy tóc", price_vnd: 2000000, price_usd: 77, execution_time: "02-03 ngày", notes: "[cite: 94]" },
+      [cite_start]{ category: "Chứng nhận HQ", regulation: "QCVN 9:2012/BKHCN", product_name: "Bình nước nóng tức thời", price_vnd: 2000000, price_usd: 77, execution_time: "02-03 ngày", notes: "[cite: 94]" },
+      [cite_start]{ category: "Chứng nhận HQ", regulation: "QCVN 9:2012/BKHCN", product_name: "Máy giặt gia dụng", price_vnd: 2000000, price_usd: 77, execution_time: "02-03 ngày", notes: "[cite: 94]" },
+      [cite_start]{ category: "Chứng nhận HQ", regulation: "QCVN 9:2012/BKHCN", product_name: "Máy hút bụi / Máy khoan tay", price_vnd: 2000000, price_usd: 77, execution_time: "02-03 ngày", notes: "[cite: 94, 99]" },
 
-      // 2. HỢP QUY Ổ CẮM & DÂY (QCVN 4 & 25)
-      { category: "Chứng nhận Hợp quy", regulation: "QCVN 25:2025/BKHCN", product_name: "Ổ cắm / Phích cắm / Dây nguồn (Phương thức 1)", price_vnd: 5000000, price_usd: 0, notes: "Chứng nhận theo loại (Type test)" },
-      { category: "Đánh giá nhà máy", regulation: "Phương thức 5", product_name: "Đánh giá quá trình SX (Trong nước)", price_vnd: 30000000, price_usd: 0, notes: "Chi phí giám sát: 15.000.000 VNĐ" },
-      { category: "Đánh giá nhà máy", regulation: "Phương thức 5", product_name: "Đánh giá quá trình SX (Nước ngoài)", price_vnd: 50000000, price_usd: 0, notes: "Chi phí giám sát: 25.000.000 VNĐ" },
-      { category: "Chứng nhận Lô hàng", regulation: "Phương thức 7", product_name: "Lô hàng 1-5 model (An toàn điện)", price_vnd: 3000000, price_usd: 0, notes: "QCVN 4:2009/BKHCN" },
-      { category: "Chứng nhận Lô hàng", regulation: "Phương thức 7", product_name: "Lô hàng >15 model (An toàn điện)", price_vnd: 6000000, price_usd: 0, notes: "QCVN 4:2009/BKHCN" },
+      // --- II. CHỨNG NHẬN HỢP QUY (QCVN 4 & 25) ---
+      [cite_start]{ category: "Chứng nhận HQ", regulation: "Phương thức 5 (QCVN 4&25)", product_name: "Đánh giá quá trình SX (Nhà máy trong nước)", price_vnd: 30000000, price_usd: 1154, execution_time: "05-07 ngày", notes: "Chi phí giám sát: 15.000.000 VNĐ/lần [cite: 117]" },
+      [cite_start]{ category: "Chứng nhận HQ", regulation: "Phương thức 5 (QCVN 4&25)", product_name: "Đánh giá quá trình SX (Nhà máy nước ngoài)", price_vnd: 50000000, price_usd: 1923, execution_time: "10-15 ngày", notes: "Chi phí giám sát: 25.000.000 VNĐ/lần [cite: 117]" },
+      [cite_start]{ category: "Chứng nhận HQ", regulation: "Phương thức 7 (Lô hàng)", product_name: "Lô hàng 1-5 model (An toàn điện)", price_vnd: 3000000, price_usd: 115, execution_time: "02-03 ngày", notes: "QCVN 4:2009 [cite: 117]" },
+      [cite_start]{ category: "Chứng nhận HQ", regulation: "Phương thức 7 (Lô hàng)", product_name: "Lô hàng >15 model (An toàn điện)", price_vnd: 6000000, price_usd: 231, execution_time: "02-03 ngày", notes: "QCVN 4:2009 [cite: 129]" },
+      [cite_start]{ category: "Chứng nhận HQ", regulation: "QCVN 25:2025", product_name: "Ổ cắm / Phích cắm / Dây nguồn / Công tắc", price_vnd: 5000000, price_usd: 192, execution_time: "02-03 ngày", notes: "Chứng nhận hợp quy [cite: 201]" },
 
-      // 3. HIỆU SUẤT NĂNG LƯỢNG (VNEEP)
-      { category: "Thử nghiệm VNEEP", regulation: "TCVN 7830:2021", product_name: "Điều hòa Non-Inverter (<= 60.000 BTU)", price_vnd: 15000000, price_usd: 0, notes: "" },
-      { category: "Thử nghiệm VNEEP", regulation: "TCVN 7830:2021", product_name: "Điều hòa Inverter (<= 60.000 BTU)", price_vnd: 20000000, price_usd: 0, notes: "" },
-      { category: "Thử nghiệm VNEEP", regulation: "TCVN 7828:2016", product_name: "Tủ lạnh / Tủ đông / Tủ mát", price_vnd: 9000000, price_usd: 0, notes: "" },
-      { category: "Thử nghiệm VNEEP", regulation: "TCVN", product_name: "Máy giặt (Cửa trên/ngang <=10kg)", price_vnd: 2500000, price_usd: 0, notes: ">10kg giá 3.500.000 VNĐ" },
-      { category: "Thử nghiệm VNEEP", regulation: "TCVN", product_name: "Đèn LED", price_vnd: 4000000, price_usd: 0, notes: "" },
-      { category: "Thử nghiệm VNEEP", regulation: "TCVN", product_name: "Laptop / Máy tính bảng / PC", price_vnd: 3000000, price_usd: 0, notes: "" },
+      // --- III. CHỨNG NHẬN HQ ĐÈN LED (QCVN 19) ---
+      [cite_start]{ category: "Chứng nhận HQ", regulation: "QCVN 19:2019/BKHCN", product_name: "Bóng đèn LED / Đèn LED cố định / Di động", price_vnd: 2000000, price_usd: 77, execution_time: "02-03 ngày", notes: "[cite: 170]" },
 
-      // 4. EMC (QCVN 9:2012)
-      { category: "Thử nghiệm EMC", regulation: "QCVN 9:2012/BKHCN", product_name: "Điều hòa 1 chiều (<24000 BTU)", price_vnd: 13000000, price_usd: 0, notes: "" },
-      { category: "Thử nghiệm EMC", regulation: "QCVN 9:2012/BKHCN", product_name: "Điều hòa 2 chiều hoặc >=24000 BTU", price_vnd: 15000000, price_usd: 0, notes: "" },
-      { category: "Thử nghiệm EMC", regulation: "QCVN 9:2012/BKHCN", product_name: "Máy giặt", price_vnd: 9000000, price_usd: 0, notes: "" },
-      { category: "Thử nghiệm EMC", regulation: "QCVN 9:2012/BKHCN", product_name: "Máy hút bụi (1 động cơ)", price_vnd: 5000000, price_usd: 0, notes: ">=2 động cơ: 7.000.000 VNĐ" },
+      // --- IV. CHỨNG NHẬN HỢP CHUẨN (Phương thức 1) ---
+      [cite_start]{ category: "Chứng nhận Hợp chuẩn", regulation: "Phương thức 1", product_name: "Thiết bị điện - điện tử (Model đầu tiên)", price_vnd: 3000000, price_usd: 115, execution_time: "02-03 ngày", notes: "Model thứ 2-5: 2.000.000 VNĐ [cite: 193]" },
 
-      // 5. AN TOÀN ĐIỆN (Safety)
-      { category: "Thử nghiệm Safety", regulation: "QCVN 4:2009/BKHCN", product_name: "Nồi cơm / Ấm siêu tốc / Quạt / Bàn là", price_vnd: 6000000, price_usd: 0, notes: "Lần 2 trở đi: 2.000.000 VNĐ" },
-      { category: "Thử nghiệm Safety", regulation: "QCVN 132:2022 (IEC 62368)", product_name: "Thiết bị CNTT (Thân máy + 1 Adapter)", price_vnd: 23000000, price_usd: 0, notes: "Thử nghiệm trọn gói" },
+      // --- B. THỬ NGHIỆM - I. HIỆU SUẤT NĂNG LƯỢNG (VNEEP) ---
+      [cite_start]{ category: "Thử nghiệm VNEEP", regulation: "TCVN 7830:2021", product_name: "Điều hòa Non-Inverter (<= 60.000 BTU)", price_vnd: 15000000, price_usd: 577, execution_time: "01-03 ngày", notes: "[cite: 367]" },
+      [cite_start]{ category: "Thử nghiệm VNEEP", regulation: "TCVN 7830:2021", product_name: "Điều hòa Inverter (<= 60.000 BTU)", price_vnd: 20000000, price_usd: 769, execution_time: "03-05 ngày", notes: "[cite: 367]" },
+      [cite_start]{ category: "Thử nghiệm VNEEP", regulation: "TCVN 7828:2016", product_name: "Tủ lạnh / Tủ đông / Tủ mát (<= 500L)", price_vnd: 9000000, price_usd: 346, execution_time: "05-07 ngày", notes: "Trên 500L: 11.000.000 VNĐ [cite: 367]" },
+      [cite_start]{ category: "Thử nghiệm VNEEP", regulation: "TCVN 13372:2021", product_name: "Bếp từ (1 vùng nấu)", price_vnd: 3000000, price_usd: 115, execution_time: "02-03 ngày", notes: "4 vùng nấu: 7.000.000 VNĐ [cite: 381]" },
+      [cite_start]{ category: "Thử nghiệm VNEEP", regulation: "TCVN 13373:2021", product_name: "Bếp hồng ngoại (1 vùng nấu)", price_vnd: 3000000, price_usd: 115, execution_time: "02-03 ngày", notes: "[cite: 381]" },
+      [cite_start]{ category: "Thử nghiệm VNEEP", regulation: "TCVN 7826/7827", product_name: "Quạt điện (Bàn, đứng, tường)", price_vnd: 3000000, price_usd: 115, execution_time: "02-03 ngày", notes: "[cite: 392]" },
+      [cite_start]{ category: "Thử nghiệm VNEEP", regulation: "TCVN 11843", product_name: "Đèn LED (<= 100W)", price_vnd: 4000000, price_usd: 153, execution_time: "01-03 ngày", notes: "Đèn đường LED: 7.000.000 VNĐ [cite: 392]" },
+      [cite_start]{ category: "Thử nghiệm VNEEP", regulation: "TCVN 8526:2013", product_name: "Máy giặt (<= 10kg)", price_vnd: 4000000, price_usd: 154, execution_time: "01-03 ngày", notes: "Trên 10kg: 5.000.000 VNĐ [cite: 410]" },
+      [cite_start]{ category: "Thử nghiệm VNEEP", regulation: "TCVN 11848:2021", product_name: "Máy tính xách tay / Máy tính bảng", price_vnd: 3000000, price_usd: 115, execution_time: "01-03 ngày", notes: "[cite: 404]" },
+      [cite_start]{ category: "Thử nghiệm VNEEP", regulation: "TCVN 9536:2021", product_name: "Tivi (Máy thu hình)", price_vnd: 3500000, price_usd: 135, execution_time: "01-03 ngày", notes: "Loại có Auto Brightness: 4.500.000 VNĐ [cite: 410]" },
+      [cite_start]{ category: "Thử nghiệm VNEEP", regulation: "TCVN 8252:2015", product_name: "Nồi cơm điện", price_vnd: 3000000, price_usd: 115, execution_time: "01-03 ngày", notes: "[cite: 404]" },
+      [cite_start]{ category: "Thử nghiệm VNEEP", regulation: "TCVN 7898:2018", product_name: "Bình đun nước nóng dự trữ (< 70L)", price_vnd: 5000000, price_usd: 192, execution_time: "03-05 ngày", notes: "Trên 70L: 7.000.000 VNĐ [cite: 410]" },
+      
+      // --- B. THỬ NGHIỆM - II. EMC (QCVN 9:2012) ---
+      [cite_start]{ category: "Thử nghiệm EMC", regulation: "QCVN 9:2012/BKHCN", product_name: "Điều hòa (1 chiều < 24000 BTU)", price_vnd: 13000000, price_usd: 500, execution_time: "01-03 ngày", notes: "[cite: 447]" },
+      [cite_start]{ category: "Thử nghiệm EMC", regulation: "QCVN 9:2012/BKHCN", product_name: "Tủ lạnh / Tủ đông", price_vnd: 9000000, price_usd: 346, execution_time: "01-03 ngày", notes: "[cite: 447]" },
+      [cite_start]{ category: "Thử nghiệm EMC", regulation: "QCVN 9:2012/BKHCN", product_name: "Lò vi sóng", price_vnd: 10000000, price_usd: 385, execution_time: "07-10 ngày", notes: "[cite: 447]" },
+      [cite_start]{ category: "Thử nghiệm EMC", regulation: "QCVN 9:2012/BKHCN", product_name: "Bếp điện / Bếp từ (1 vùng nấu)", price_vnd: 6000000, price_usd: 231, execution_time: "01-03 ngày", notes: "[cite: 447]" },
+      [cite_start]{ category: "Thử nghiệm EMC", regulation: "QCVN 9:2012/BKHCN", product_name: "Máy xay / ép / đánh trứng / sấy tóc", price_vnd: 5000000, price_usd: 192, execution_time: "01-03 ngày", notes: "[cite: 463]" },
+      [cite_start]{ category: "Thử nghiệm EMC", regulation: "QCVN 9:2012/BKHCN", product_name: "Máy giặt", price_vnd: 9000000, price_usd: 346, execution_time: "01-03 ngày", notes: "[cite: 463]" },
 
-      // 7. VIỄN THÔNG (2026 Updated)
-      { category: "Thử nghiệm Viễn thông", regulation: "QCVN 134:2024", product_name: "Điện thoại 3G+4G (Có CA)", price_vnd: 1040000000, price_usd: 0, notes: "Giá cao do thiết bị đo phức tạp" },
-      { category: "Thử nghiệm Viễn thông", regulation: "QCVN 134:2024", product_name: "Điện thoại 5G (MIMO, CA)", price_vnd: 1300000000, price_usd: 0, notes: "Giảm 20% khi làm combo" },
-      { category: "Thử nghiệm Viễn thông", regulation: "QCVN 117:2023", product_name: "Thiết bị đầu cuối LTE (4G)", price_vnd: 18000000, price_usd: 0, notes: "" },
-      { category: "Thử nghiệm Viễn thông", regulation: "QCVN 54/65", product_name: "Thiết bị Wifi", price_vnd: 7000000, price_usd: 0, notes: "Dao động 7-10M tùy băng tần" },
+      // --- B. THỬ NGHIỆM - III. AN TOÀN ĐIỆN GIA DỤNG (QCVN 4:2009) ---
+      [cite_start]{ category: "Thử nghiệm Safety", regulation: "QCVN 4:2009", product_name: "Bình nóng lạnh / Ấm siêu tốc (Lần đầu)", price_vnd: 6000000, price_usd: 231, execution_time: "10-15 ngày", notes: "Lần 2 trở đi: 2.000.000 VNĐ [cite: 497]" },
+      [cite_start]{ category: "Thử nghiệm Safety", regulation: "QCVN 4:2009", product_name: "Máy sấy tóc (Lần đầu)", price_vnd: 6000000, price_usd: 231, execution_time: "10-15 ngày", notes: "[cite: 497]" },
+      [cite_start]{ category: "Thử nghiệm Safety", regulation: "QCVN 4:2009", product_name: "Lò vi sóng (Lần đầu)", price_vnd: 8000000, price_usd: 308, execution_time: "15-17 ngày", notes: "[cite: 524]" },
+      [cite_start]{ category: "Thử nghiệm Safety", regulation: "QCVN 4:2009", product_name: "Lò nướng điện (Lần đầu)", price_vnd: 6000000, price_usd: 231, execution_time: "10-15 ngày", notes: "[cite: 524]" },
 
-      // 8 & 9. PIN & Ổ CẮM
-      { category: "Thử nghiệm Pin", regulation: "QCVN 101:2020", product_name: "Pin Lithium (Pack + Cell)", price_vnd: 16000000, price_usd: 0, notes: "Yêu cầu: 22 pack + 38 cell" },
-      { category: "Thử nghiệm Ổ cắm", regulation: "QCVN 25:2025", product_name: "Ổ cắm / Phích cắm (Trọn gói)", price_vnd: 18000000, price_usd: 0, notes: "Thời gian: 15 ngày" }
+      // --- B. THỬ NGHIỆM - IV. ĐÈN LED (QCVN 19:2019) ---
+      [cite_start]{ category: "Thử nghiệm LED", regulation: "QCVN 19:2019", product_name: "An toàn điện (ES)", price_vnd: 5000000, price_usd: 192, execution_time: "03-05 ngày", notes: "[cite: 546]" },
+      [cite_start]{ category: "Thử nghiệm LED", regulation: "QCVN 19:2019", product_name: "Nhiễu điện từ (EMI)", price_vnd: 6000000, price_usd: 231, execution_time: "03-05 ngày", notes: "[cite: 546]" },
+      [cite_start]{ category: "Thử nghiệm LED", regulation: "QCVN 19:2019", product_name: "Miễn nhiễm điện từ (EMS)", price_vnd: 9000000, price_usd: 346, execution_time: "10-15 ngày", notes: "[cite: 546]" },
+      [cite_start]{ category: "Thử nghiệm LED", regulation: "QCVN 19:2019", product_name: "Trọn gói (Không chống bụi nước)", price_vnd: 25000000, price_usd: 962, execution_time: "Xem lẻ", notes: "Bao gồm ES+EMI+EMS+PBS [cite: 546]" },
+      [cite_start]{ category: "Thử nghiệm LED", regulation: "QCVN 19:2019", product_name: "Trọn gói (Có IP)", price_vnd: 27000000, price_usd: 1038, execution_time: "Xem lẻ", notes: "Bao gồm ES+EMI+EMS+PBS+IP [cite: 546]" },
+
+      // --- B. THỬ NGHIỆM - VI. AN TOÀN ĐIỆN ICT (QCVN 132:2022) ---
+      [cite_start]{ category: "Thử nghiệm Safety ICT", regulation: "QCVN 132:2022", product_name: "Thiết bị thông dụng (Thân máy + 1 Adapter)", price_vnd: 23000000, price_usd: 885, execution_time: "15 ngày", notes: "IEC 62368-1:2018 [cite: 674]" },
+      [cite_start]{ category: "Thử nghiệm Safety ICT", regulation: "QCVN 132:2022", product_name: "Phụ phí Adapter tích hợp thêm", price_vnd: 11500000, price_usd: 442, execution_time: "+5 ngày", notes: "[cite: 674]" },
+      [cite_start]{ category: "Thử nghiệm Safety ICT", regulation: "QCVN 132:2022", product_name: "Phụ phí Adapter rời thêm", price_vnd: 7000000, price_usd: 269, execution_time: "+5 ngày", notes: "[cite: 674]" },
+      [cite_start]{ category: "Thử nghiệm Safety ICT", regulation: "QCVN 132:2022", product_name: "Thiết bị chứa chất lỏng có áp suất", price_vnd: 20000000, price_usd: 769, execution_time: "+40 ngày", notes: "[cite: 686]" },
+
+      // --- B. THỬ NGHIỆM - VII. PIN LITHIUM (QCVN 101:2020) ---
+      [cite_start]{ category: "Thử nghiệm Pin", regulation: "QCVN 101:2020", product_name: "Gói pin (Battery Pack)", price_vnd: 8000000, price_usd: 308, execution_time: "09-12 ngày", notes: "Cần 22 mẫu [cite: 698]" },
+      [cite_start]{ category: "Thử nghiệm Pin", regulation: "QCVN 101:2020", product_name: "Tế bào pin (Battery Cell)", price_vnd: 8000000, price_usd: 308, execution_time: "09-12 ngày", notes: "Cần 38 mẫu [cite: 698]" },
+      [cite_start]{ category: "Thử nghiệm Pin", regulation: "QCVN 101:2020", product_name: "Trọn gói (Pack + 1 Cell)", price_vnd: 16000000, price_usd: 615, execution_time: "09-12 ngày", notes: "[cite: 698]" },
+
+      // --- B. THỬ NGHIỆM - VIII. VIỄN THÔNG (QCVN 117, 54, 65...) ---
+      [cite_start]{ category: "Thử nghiệm Viễn thông", regulation: "QCVN 54:2020", product_name: "Wifi (Điều kiện thường)", price_vnd: 7000000, price_usd: 269, execution_time: "05-07 ngày", notes: "Điều kiện tới hạn + thường: 11.000.000 VNĐ [cite: 747]" },
+      [cite_start]{ category: "Thử nghiệm Viễn thông", regulation: "QCVN 65:2021", product_name: "Wifi 5GHz (Điều kiện thường)", price_vnd: 7000000, price_usd: 269, execution_time: "05-07 ngày", notes: "[cite: 757]" },
+      [cite_start]{ category: "Thử nghiệm Viễn thông", regulation: "QCVN 117:2023", product_name: "Thiết bị LTE/4G (Điều kiện thường)", price_vnd: 18000000, price_usd: 692, execution_time: "05-07 ngày", notes: "Thường + Tới hạn: 26.000.000 VNĐ [cite: 762]" },
+      [cite_start]{ category: "Thử nghiệm Viễn thông", regulation: "QCVN 127/129/18", product_name: "Thiết bị 5G (Combo thường + tới hạn)", price_vnd: 500000000, price_usd: 19231, execution_time: "30-45 ngày", notes: "[cite: 785]" },
+      [cite_start]{ category: "Thử nghiệm Viễn thông", regulation: "QCVN 136:2025", product_name: "Thử nghiệm QCVN 136", price_vnd: 25000000, price_usd: 962, execution_time: "05-07 ngày", notes: "Quy chuẩn mới [cite: 785]" },
+
+      // --- B. THỬ NGHIỆM - IX. SAR (QCVN 134:2024) ---
+      [cite_start]{ category: "Thử nghiệm SAR", regulation: "QCVN 134:2024", product_name: "Điện thoại 3G+4G (Không CA)", price_vnd: 860000000, price_usd: 33000, execution_time: "20-25 ngày", notes: "Miễn phí QCVN 117 khi làm combo [cite: 847]" },
+      [cite_start]{ category: "Thử nghiệm SAR", regulation: "QCVN 134:2024", product_name: "Điện thoại 3G+4G (Có CA/MIMO)", price_vnd: 1040000000, price_usd: 40000, execution_time: "25-30 ngày", notes: "Miễn phí QCVN 117 khi làm combo [cite: 847]" },
+      [cite_start]{ category: "Thử nghiệm SAR", regulation: "QCVN 134:2024", product_name: "Điện thoại 5G (Full option)", price_vnd: 1300000000, price_usd: 50000, execution_time: "35-40 ngày", notes: "Giảm 20% phí thử nghiệm khi làm combo [cite: 847]" },
+      [cite_start]{ category: "Thử nghiệm SAR", regulation: "QCVN 134:2024", product_name: "Tablet/Laptop (Chỉ Wifi)", price_vnd: 290000000, price_usd: 11150, execution_time: "10-20 ngày", notes: "Miễn phí QCVN 54/65 khi làm combo [cite: 859]" },
+
+      // --- B. THỬ NGHIỆM - X. Ổ CẮM (QCVN 25:2025) ---
+      [cite_start]{ category: "Thử nghiệm Ổ cắm", regulation: "QCVN 25:2025", product_name: "Ổ cắm / Phích cắm (Trọn gói)", price_vnd: 18000000, price_usd: 692, execution_time: "10-15 ngày", notes: "Thử nghiệm để chứng nhận hợp quy [cite: 938]" },
+      [cite_start]{ category: "Thử nghiệm Ổ cắm", regulation: "QCVN 25:2025", product_name: "Ổ cắm / Phích cắm (Theo yêu cầu)", price_vnd: 8000000, price_usd: 308, execution_time: "05-07 ngày", notes: "[cite: 938]" }
     ];
 
     // --- UI COMPONENTS ---
@@ -140,7 +183,7 @@
               </div>
               ${item.price_usd > 0 && html`
                 <div className="text-sm font-medium text-slate-400">
-                  ~ ${item.price_usd} USD
+                  ~ ${item.price_usd?.toLocaleString('en-US')} USD
                 </div>
               `}
             </div>
@@ -148,7 +191,7 @@
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 py-6 border-y border-slate-100">
             <${DetailItem} label="Thời gian thực hiện" value=${item.execution_time || "Liên hệ PGL"} />
-            <${DetailItem} label="Mẫu yêu cầu" value=${item.sample_required || "Theo quy định"} />
+            <${DetailItem} label="Yêu cầu mẫu" value="Theo quy định" />
             <${DetailItem} label="VAT (5%)" value="Chưa bao gồm" />
           </div>
 
@@ -163,7 +206,7 @@
         </div>
 
         <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between no-print">
-          <span className="text-[10px] text-slate-400 font-medium">Data Source: PGL 2026</span>
+          <span className="text-[10px] text-slate-400 font-medium">Nguồn: PGL 20/01/2026</span>
           <button
             onClick=${onCopy}
             className=${`flex items-center gap-2 text-xs font-bold transition-all px-4 py-2 rounded-full border ${isCopied ? 'bg-green-100 border-green-200 text-green-600' : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'}`}
@@ -223,7 +266,7 @@
               </div>
               <div>
                 <h1 className="font-bold text-lg text-slate-800 tracking-tight">PGL AI</h1>
-                <p className="text-xs text-slate-500 font-medium">Offline Version v1.0</p>
+                <p className="text-xs text-slate-500 font-medium">Offline Version v2.1</p>
               </div>
             </div>
 
@@ -237,7 +280,7 @@
                 <${ShieldCheck} size=${12}/> Ready to use
               </h3>
               <p className="text-[10px] text-green-700">
-                Dữ liệu được tích hợp sẵn. Không cần mạng internet hoặc API Key.
+                Dữ liệu được cập nhật ngày 20/01/2026. Không cần mạng internet.
               </p>
             </div>
           </aside>
@@ -250,7 +293,7 @@
               </h2>
               <div className="flex items-center gap-4">
                 <span className="hidden sm:inline-block text-xs font-medium text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
-                  Database: 02/01/2026
+                  Database: 20/01/2026
                 </span>
                 <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 text-xs font-bold">
                   OFF
@@ -264,7 +307,7 @@
                   <div className="mb-10 text-center md:text-left no-print">
                     <h1 className="text-3xl md:text-4xl font-extrabold text-slate-800 mb-4 tracking-tight">Tra cứu báo giá dịch vụ</h1>
                     <p className="text-slate-500 max-w-2xl leading-relaxed text-lg">
-                      Nhập tên thiết bị (ví dụ: "điều hòa", "pin", "đèn led") để tìm kiếm trong cơ sở dữ liệu báo giá niêm yết 2026.
+                      Nhập tên thiết bị (ví dụ: "điều hòa", "pin", "QCVN 134") để tìm kiếm trong bảng giá niêm yết mới nhất (2026).
                     </p>
 
                     <form onSubmit=${handleSearch} className="mt-8 flex flex-col sm:flex-row gap-3 max-w-3xl">
@@ -329,7 +372,7 @@
                       <pre className="text-xs text-green-400 font-mono leading-relaxed">${JSON.stringify(DATA_SOURCE, null, 2)}</pre>
                    </div>
                    <p className="mt-4 text-sm text-slate-500 italic">
-                     * Đây là dữ liệu được sử dụng để tra cứu. Bạn có thể chỉnh sửa mảng DATA_SOURCE trong file HTML để cập nhật giá.
+                     * Đây là dữ liệu được sử dụng để tra cứu (Cập nhật 20/01/2026). Bạn có thể chỉnh sửa mảng DATA_SOURCE trong file HTML để cập nhật giá.
                    </p>
                 </div>
               `}
