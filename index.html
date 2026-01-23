@@ -3,8 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PGL Pricing Assistant 2026</title>
-  <meta name="description" content="Tra cứu báo giá Phúc Gia Lab 2026">
+  <title>PGL Pricing Assistant v4.0 (Cart Enabled)</title>
   
   <script src="https://cdn.tailwindcss.com"></script>
   
@@ -12,16 +11,22 @@
   
   <style>
     body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
-    .animate-fadeIn { animation: fadeIn 0.5s ease-out forwards; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .animate-fadeIn { animation: fadeIn 0.3s ease-out forwards; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
     
-    /* Error Banner Style */
-    #error-banner { display: none; padding: 1rem; background: #fee2e2; border-bottom: 2px solid #ef4444; color: #b91c1c; position: fixed; top: 0; left: 0; width: 100%; z-index: 9999; font-family: monospace; font-size: 0.9rem; }
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
     
-    /* Loading Spinner */
-    #pre-loader { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; color: #64748b; }
-    .spinner { width: 40px; height: 40px; border: 4px solid #e2e8f0; border-top-color: #3b82f6; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 1rem; }
-    @keyframes spin { to { transform: rotate(360deg); } }
+    /* Print Styles */
+    @media print {
+      body { background: white; }
+      aside, .no-print { display: none !important; }
+      main { margin: 0; padding: 0; }
+      .print-only { display: block !important; }
+      .card { break-inside: avoid; border: 1px solid #ddd; box-shadow: none; }
+    }
   </style>
 
   <script type="importmap">
@@ -34,284 +39,362 @@
     }
   }
   </script>
-
-  <script>
-    window.onerror = function(msg, url, line, col, error) {
-      const banner = document.getElementById('error-banner');
-      const loader = document.getElementById('pre-loader');
-      if (loader) loader.style.display = 'none';
-      if (banner) {
-        banner.style.display = 'block';
-        banner.innerHTML = `<strong>Lỗi Hệ Thống:</strong> ${msg}<br><small>${url}:${line}:${col}</small>`;
-      }
-      return false;
-    };
-  </script>
 </head>
 <body>
-  <div id="error-banner"></div>
-
-  <div id="pre-loader">
-    <div class="spinner"></div>
-    <p>Đang khởi tạo dữ liệu báo giá...</p>
-  </div>
-
   <div id="root"></div>
 
   <script type="module">
-    import React, { useState, useEffect, useMemo } from 'react';
+    import React, { useState, useMemo, useEffect } from 'react';
     import ReactDOM from 'react-dom/client';
     import { 
-      Search, Calculator, FileText, Database, Check, Copy, Printer, ShieldCheck, Box, Info 
+      Search, Calculator, ShoppingCart, Trash2, Plus, Printer, 
+      FileText, Database, ShieldCheck, Wifi, Cpu, X
     } from 'lucide-react';
     import htm from 'htm';
 
     const html = htm.bind(React.createElement);
 
     // ==========================================
-    // DỮ LIỆU BÁO GIÁ (CẬP NHẬT TỪ PDF 2026)
+    // DỮ LIỆU BÁO GIÁ (FULL DATA 2026)
     // ==========================================
     const DATA_SOURCE = [
-      // 1. GIA DỤNG (QCVN 9:2012)
-      { category: "Gia dụng (QCVN 9)", product_name: "Điều hòa không khí (Thường)", price_vnd: 2000000, price_usd: 77, notes: "Chứng nhận Hợp quy" },
-      { category: "Gia dụng (QCVN 9)", product_name: "Điều hòa Multi (1 mẹ 2 con)", price_vnd: 3000000, price_usd: 115, notes: "+1 mặt lạnh: +1.000.000 VNĐ" },
-      { category: "Gia dụng (QCVN 9)", product_name: "Tủ lạnh / Tủ mát / Tủ đông", price_vnd: 2000000, price_usd: 77, notes: "" },
-      { category: "Gia dụng (QCVN 9)", product_name: "Máy giặt gia dụng", price_vnd: 2000000, price_usd: 77, notes: "" },
-      { category: "Gia dụng (QCVN 9)", product_name: "Máy sấy tóc / Máy xay / Máy ép", price_vnd: 2000000, price_usd: 77, notes: "Đồng giá các thiết bị gia dụng nhỏ" },
-      { category: "Gia dụng (QCVN 9)", product_name: "Lò vi sóng / Bếp điện", price_vnd: 2000000, price_usd: 77, notes: "" },
-      { category: "Gia dụng (QCVN 9)", product_name: "Bình nước nóng tức thời", price_vnd: 2000000, price_usd: 77, notes: "" },
+      // --- VIỄN THÔNG & CNTT (NEW UPDATE) ---
+      { category: "Viễn thông", regulation: "QCVN 47:2015", product_name: "Thiết bị vô tuyến (P <= 1W)", price_vnd: 8000000, price_usd: 308, notes: "Đo giả mạo (Spurious)" },
+      { category: "Viễn thông", regulation: "QCVN 47:2015", product_name: "Thiết bị vô tuyến (1W < P <= 5W)", price_vnd: 10000000, price_usd: 385, notes: "" },
+      { category: "Viễn thông", regulation: "QCVN 54:2020", product_name: "Thiết bị Wifi 2.4GHz (Đk thường)", price_vnd: 7000000, price_usd: 269, notes: "Bổ sung điều kiện tới hạn: +3.000.000 VNĐ" },
+      { category: "Viễn thông", regulation: "QCVN 65:2021", product_name: "Thiết bị Wifi 5GHz (Đk thường)", price_vnd: 7000000, price_usd: 269, notes: "Access Point / Device" },
+      { category: "Viễn thông", regulation: "QCVN 117:2023", product_name: "Thiết bị 4G LTE (1 công nghệ)", price_vnd: 18000000, price_usd: 692, notes: "Điều kiện thường" },
+      { category: "Viễn thông", regulation: "QCVN 117:2023", product_name: "Thiết bị 4G LTE (Thường + Tới hạn)", price_vnd: 26000000, price_usd: 1000, notes: "Full điều kiện" },
+      { category: "Viễn thông", regulation: "QCVN 117:2023", product_name: "Thiết bị 2G/3G (GSM/WCDMA)", price_vnd: 12000000, price_usd: 461, notes: "Điều kiện thường" },
+      { category: "Viễn thông", regulation: "QCVN 18:2022", product_name: "EMC cho thiết bị 5G", price_vnd: 7000000, price_usd: 269, notes: "Tương thích điện từ" },
+      { category: "Viễn thông", regulation: "QCVN 136:2025", product_name: "Quy chuẩn kỹ thuật mới 2025", price_vnd: 25000000, price_usd: 962, notes: "Áp dụng thiết bị đặc thù" },
+      { category: "Viễn thông", regulation: "QCVN 112:2017", product_name: "Thiết bị LPI (Low Power)", price_vnd: 5000000, price_usd: 192, notes: "Thiết bị tầm ngắn" },
+      { category: "Viễn thông", regulation: "QCVN 86:2019", product_name: "EMC thiết bị thông tin di động", price_vnd: 6000000, price_usd: 231, notes: "1 công nghệ" },
+      { category: "Viễn thông", regulation: "QCVN 118:2018", product_name: "EMC thiết bị đa phương tiện (MME)", price_vnd: 5000000, price_usd: 192, notes: "Thay thế TCVN 7189" },
+      { category: "Viễn thông", regulation: "QCVN 119:2019", product_name: "Thiết bị Hàng hải/Radar", price_vnd: 8000000, price_usd: 308, notes: "" },
+      { category: "Viễn thông", regulation: "QCVN 103:2016", product_name: "Thiết bị RFID", price_vnd: 7000000, price_usd: 269, notes: "" },
+      
+      // --- SAR (QCVN 134:2024) ---
+      { category: "SAR Testing", regulation: "QCVN 134:2024", product_name: "Điện thoại 3G+4G (Non-CA)", price_vnd: 860000000, price_usd: 33000, notes: "Đo mức hấp thụ riêng (SAR). Miễn phí QCVN 117." },
+      { category: "SAR Testing", regulation: "QCVN 134:2024", product_name: "Điện thoại 3G+4G (Có CA/MIMO)", price_vnd: 1040000000, price_usd: 40000, notes: "Đo mức hấp thụ riêng (SAR). Miễn phí QCVN 117." },
+      { category: "SAR Testing", regulation: "QCVN 134:2024", product_name: "Điện thoại 5G (Full Option)", price_vnd: 1300000000, price_usd: 50000, notes: "Đo SAR 5G. Giảm 20% phí thử nghiệm." },
+      { category: "SAR Testing", regulation: "QCVN 134:2024", product_name: "Tablet/Laptop (Chỉ Wifi)", price_vnd: 290000000, price_usd: 11150, notes: "Đo SAR Wifi. Miễn phí QCVN 54/65." },
+      { category: "SAR Testing", regulation: "QCVN 134:2024", product_name: "Tablet/Laptop (3G/4G Non-CA)", price_vnd: 580000000, price_usd: 22300, notes: "Đo SAR." },
 
-      // 2. Ổ CẮM & DÂY (QCVN 4 & 25)
-      { category: "Thiết bị điện", regulation: "QCVN 25:2025", product_name: "Ổ cắm / Phích cắm / Dây nguồn / Công tắc", price_vnd: 5000000, price_usd: 192, notes: "Phương thức 1 (Type test)" },
-      { category: "Đánh giá nhà máy", regulation: "QCVN 4 & 25", product_name: "Đánh giá quá trình SX (Trong nước)", price_vnd: 30000000, price_usd: 1154, notes: "Giám sát: 15.000.000 VNĐ" },
-      { category: "Đánh giá nhà máy", regulation: "QCVN 4 & 25", product_name: "Đánh giá quá trình SX (Nước ngoài)", price_vnd: 50000000, price_usd: 1923, notes: "Giám sát: 25.000.000 VNĐ" },
-      { category: "Theo lô hàng", regulation: "QCVN 4:2009", product_name: "Lô hàng 1-5 model (Safety)", price_vnd: 3000000, price_usd: 115, notes: "" },
-      { category: "Theo lô hàng", regulation: "QCVN 25:2025", product_name: "Lô hàng 1-5 model (Ổ cắm/Phích cắm)", price_vnd: 6000000, price_usd: 231, notes: "" },
+      // --- GIA DỤNG (QCVN 9:2012) ---
+      { category: "Gia dụng", regulation: "QCVN 9:2012", product_name: "Điều hòa không khí (Thường)", price_vnd: 2000000, price_usd: 77, notes: "Chứng nhận HQ" },
+      { category: "Gia dụng", regulation: "QCVN 9:2012", product_name: "Tủ lạnh / Tủ mát", price_vnd: 2000000, price_usd: 77, notes: "Chứng nhận HQ" },
+      { category: "Gia dụng", regulation: "QCVN 9:2012", product_name: "Máy giặt", price_vnd: 2000000, price_usd: 77, notes: "Chứng nhận HQ" },
+      { category: "Gia dụng", regulation: "QCVN 9:2012", product_name: "Máy sấy tóc / Máy xay / Máy ép", price_vnd: 2000000, price_usd: 77, notes: "Đồng giá gia dụng nhỏ" },
+      { category: "Gia dụng", regulation: "QCVN 9:2012", product_name: "Lò vi sóng", price_vnd: 2000000, price_usd: 77, notes: "Chứng nhận HQ" },
 
-      // 3. HIỆU SUẤT NĂNG LƯỢNG (VNEEP)
-      { category: "VNEEP", regulation: "TCVN 7830", product_name: "Điều hòa Non-Inverter (<= 60k BTU)", price_vnd: 15000000, price_usd: 577, notes: "" },
-      { category: "VNEEP", regulation: "TCVN 7830", product_name: "Điều hòa Inverter (<= 60k BTU)", price_vnd: 20000000, price_usd: 769, notes: "" },
-      { category: "VNEEP", regulation: "TCVN 7828", product_name: "Tủ lạnh / Tủ đông (<= 500L)", price_vnd: 9000000, price_usd: 346, notes: ">500L: 11.000.000 VNĐ" },
-      { category: "VNEEP", regulation: "TCVN 13372", product_name: "Bếp từ (1 vùng nấu)", price_vnd: 3000000, price_usd: 115, notes: "4 vùng nấu: 7.000.000 VNĐ" },
-      { category: "VNEEP", regulation: "TCVN 7826", product_name: "Quạt điện (Bàn, đứng, tường)", price_vnd: 3000000, price_usd: 115, notes: "<50W: 2.000.000 VNĐ" },
-      { category: "VNEEP", regulation: "TCVN 11843", product_name: "Đèn LED (<= 100W)", price_vnd: 4000000, price_usd: 153, notes: "" },
-      { category: "VNEEP", regulation: "TCVN 8526", product_name: "Máy giặt (<= 10kg)", price_vnd: 4000000, price_usd: 154, notes: ">10kg: 5.000.000 VNĐ" },
-      { category: "VNEEP", regulation: "TCVN 11848", product_name: "Laptop / Máy tính bảng", price_vnd: 3000000, price_usd: 115, notes: "" },
-      { category: "VNEEP", regulation: "TCVN 9536", product_name: "Tivi (Máy thu hình)", price_vnd: 3500000, price_usd: 135, notes: "Có Auto Brightness: 4.500.000 VNĐ" },
+      // --- AN TOÀN & Ổ CẮM ---
+      { category: "Thiết bị điện", regulation: "QCVN 25:2025", product_name: "Ổ cắm / Phích cắm (Hợp quy)", price_vnd: 5000000, price_usd: 192, notes: "Phương thức 1" },
+      { category: "Safety", regulation: "QCVN 4:2009", product_name: "Bình nóng lạnh (Safety)", price_vnd: 6000000, price_usd: 231, notes: "Thử nghiệm Lần đầu" },
+      { category: "Safety ICT", regulation: "QCVN 132:2022", product_name: "Thiết bị CNTT (Adaptor rời)", price_vnd: 23000000, price_usd: 885, notes: "IEC 62368" },
 
-      // 4. EMC (QCVN 9:2012)
-      { category: "EMC", regulation: "QCVN 9:2012", product_name: "Điều hòa (1 chiều < 24000 BTU)", price_vnd: 13000000, price_usd: 500, notes: "" },
-      { category: "EMC", regulation: "QCVN 9:2012", product_name: "Tủ lạnh / Tủ đông", price_vnd: 9000000, price_usd: 346, notes: "" },
-      { category: "EMC", regulation: "QCVN 9:2012", product_name: "Lò vi sóng", price_vnd: 10000000, price_usd: 385, notes: "" },
-      { category: "EMC", regulation: "QCVN 9:2012", product_name: "Bếp điện / Bếp từ (1 vùng)", price_vnd: 6000000, price_usd: 231, notes: "" },
-      { category: "EMC", regulation: "QCVN 9:2012", product_name: "Máy giặt", price_vnd: 9000000, price_usd: 346, notes: "" },
-
-      // 5. AN TOÀN ĐIỆN (SAFETY)
-      { category: "Safety", regulation: "QCVN 4:2009", product_name: "Bình nóng lạnh / Ấm siêu tốc (Lần đầu)", price_vnd: 6000000, price_usd: 231, notes: "Lần 2 trở đi: 2.000.000 VNĐ" },
-      { category: "Safety", regulation: "QCVN 4:2009", product_name: "Lò vi sóng (Lần đầu)", price_vnd: 8000000, price_usd: 308, notes: "" },
-      { category: "Safety ICT", regulation: "QCVN 132:2022", product_name: "Thiết bị CNTT (Thân máy + 1 Adapter)", price_vnd: 23000000, price_usd: 885, notes: "IEC 62368-1:2018" },
-      { category: "Safety ICT", regulation: "QCVN 132:2022", product_name: "Thiết bị chứa chất lỏng có áp suất", price_vnd: 20000000, price_usd: 769, notes: "Phụ phí cộng thêm" },
-
-      // 6. THỬ NGHIỆM ĐÈN LED (QCVN 19)
-      { category: "LED Testing", regulation: "QCVN 19:2019", product_name: "Trọn gói (Không IP)", price_vnd: 25000000, price_usd: 962, notes: "Gồm ES + EMI + EMS + PBS" },
-      { category: "LED Testing", regulation: "QCVN 19:2019", product_name: "Trọn gói (Có IP)", price_vnd: 27000000, price_usd: 1038, notes: "Gồm ES + EMI + EMS + PBS + IP" },
-
-      // 7. PIN LITHIUM (QCVN 101)
-      { category: "Pin Lithium", regulation: "QCVN 101:2020", product_name: "Gói pin (Battery Pack)", price_vnd: 8000000, price_usd: 308, notes: "Yêu cầu 22 mẫu" },
-      { category: "Pin Lithium", regulation: "QCVN 101:2020", product_name: "Tế bào pin (Battery Cell)", price_vnd: 8000000, price_usd: 308, notes: "Yêu cầu 38 mẫu" },
-      { category: "Pin Lithium", regulation: "QCVN 101:2020", product_name: "Trọn gói (Pack + 1 Cell)", price_vnd: 16000000, price_usd: 615, notes: "" },
-
-      // 8. VIỄN THÔNG & SAR (Giá trị cao)
-      { category: "Viễn thông", regulation: "QCVN 134:2024", product_name: "Điện thoại 3G+4G (Không CA)", price_vnd: 860000000, price_usd: 33000, notes: "Thử nghiệm SAR. Miễn phí QCVN 117" },
-      { category: "Viễn thông", regulation: "QCVN 134:2024", product_name: "Điện thoại 3G+4G (Có CA/MIMO)", price_vnd: 1040000000, price_usd: 40000, notes: "Thử nghiệm SAR. Miễn phí QCVN 117" },
-      { category: "Viễn thông", regulation: "QCVN 134:2024", product_name: "Điện thoại 5G (Full)", price_vnd: 1300000000, price_usd: 50000, notes: "Thử nghiệm SAR. Giảm 20% phí thử" },
-      { category: "Viễn thông", regulation: "QCVN 134:2024", product_name: "Tablet / Laptop (Chỉ Wifi)", price_vnd: 290000000, price_usd: 11150, notes: "Thử nghiệm SAR. Miễn phí QCVN 54/65" },
-      { category: "Viễn thông", regulation: "QCVN 117:2023", product_name: "Thiết bị 4G LTE (Điều kiện thường)", price_vnd: 18000000, price_usd: 692, notes: "" },
-      { category: "Viễn thông", regulation: "QCVN 54/65", product_name: "Thiết bị Wifi", price_vnd: 7000000, price_usd: 269, notes: "" },
-      { category: "Viễn thông", regulation: "QCVN 136:2025", product_name: "Thử nghiệm QCVN 136", price_vnd: 25000000, price_usd: 962, notes: "Quy chuẩn mới 2025" }
+      // --- HIỆU SUẤT NĂNG LƯỢNG ---
+      { category: "VNEEP", regulation: "TCVN 7830", product_name: "Điều hòa Inverter (<= 60k BTU)", price_vnd: 20000000, price_usd: 769, notes: "Thử nghiệm HSNL" },
+      { category: "VNEEP", regulation: "TCVN 7828", product_name: "Tủ lạnh (<= 500L)", price_vnd: 9000000, price_usd: 346, notes: "Thử nghiệm HSNL" },
+      
+      // --- PIN LITHIUM ---
+      { category: "Pin Lithium", regulation: "QCVN 101:2020", product_name: "Pin Lithium (Trọn gói Pack+Cell)", price_vnd: 16000000, price_usd: 615, notes: "Cần 22 Pack + 16 Cell" }
     ];
 
     // ==========================================
     // UI COMPONENTS
     // ==========================================
-    const NavItem = ({ icon, label, active, onClick }) => html`
+    
+    // Nút điều hướng trái
+    const NavItem = ({ icon, label, count, active, onClick }) => html`
       <button 
         onClick=${onClick}
-        className=${`flex w-full items-center gap-3 px-4 py-3 rounded-xl transition-all ${active ? 'bg-blue-600 text-white font-bold shadow-md' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'}`}
+        className=${`flex w-full items-center gap-3 px-4 py-3 rounded-xl transition-all relative ${active ? 'bg-blue-600 text-white font-bold shadow-md' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'}`}
       >
         <${icon} size=${18} />
         <span className="text-sm text-left flex-1">${label}</span>
+        ${count > 0 && html`
+          <span className="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">
+            ${count}
+          </span>
+        `}
       </button>
     `;
 
-    const PricingCard = ({ item, isCopied, onCopy }) => html`
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-lg transition-all p-6 break-inside-avoid animate-fadeIn">
-        <div className="flex flex-col md:flex-row justify-between items-start gap-4 mb-4">
-          <div>
-            <span className="inline-block px-2 py-1 bg-slate-100 text-slate-600 text-xs font-bold uppercase rounded mb-2">
-              ${item.category}
-            </span>
-            <h3 className="text-lg font-bold text-slate-800 leading-tight">${item.product_name}</h3>
-            <p className="text-sm text-slate-500 mt-1 flex items-center gap-1">
-              <${FileText} size=${12} /> ${item.regulation}
-            </p>
-          </div>
-          <div className="text-right">
-            <div className="text-2xl font-black text-blue-600">
-              ${item.price_vnd.toLocaleString('vi-VN')}
-            </div>
-            <div className="text-xs font-bold text-slate-400">VNĐ</div>
-          </div>
+    // Thẻ sản phẩm
+    const PricingCard = ({ item, onAdd }) => html`
+      <div className="bg-white rounded-xl border border-slate-200 p-5 hover:shadow-lg transition-all animate-fadeIn group relative">
+        <div className="flex justify-between items-start mb-2">
+          <span className="inline-block px-2 py-0.5 bg-slate-100 text-slate-600 text-[10px] font-bold uppercase rounded tracking-wider">
+            ${item.category}
+          </span>
+          <button 
+            onClick=${() => onAdd(item)}
+            className="text-blue-600 bg-blue-50 p-2 rounded-full hover:bg-blue-600 hover:text-white transition-colors"
+            title="Thêm vào giỏ"
+          >
+            <${Plus} size=${18} />
+          </button>
+        </div>
+        
+        <h3 className="text-base font-bold text-slate-800 mb-1 line-clamp-2" title=${item.product_name}>
+          ${item.product_name}
+        </h3>
+        
+        <div className="flex items-center gap-2 text-xs text-slate-500 mb-4">
+          <${ShieldCheck} size=${12} className="text-green-500" /> 
+          <span className="font-mono bg-slate-50 px-1 rounded">${item.regulation}</span>
         </div>
 
-        <div className="pt-4 border-t border-slate-100 flex flex-col gap-2">
-          ${item.notes && html`
-            <div className="text-sm text-slate-600 bg-blue-50 p-3 rounded-lg italic border border-blue-100">
-              "${item.notes}"
+        <div className="flex items-end justify-between border-t border-slate-50 pt-3">
+          <div className="text-xs text-slate-400 italic max-w-[60%] line-clamp-1">
+            ${item.notes || "Tiêu chuẩn"}
+          </div>
+          <div className="text-right">
+            <div className="text-lg font-black text-blue-600">
+              ${(item.price_vnd / 1000000).toLocaleString('vi-VN')} Tr
             </div>
-          `}
-          
-          <div className="flex justify-between items-center mt-2 pt-2">
-            <span className="text-xs text-slate-400 font-mono">ID: ${item.price_usd}USD</span>
-            <button
-              onClick=${onCopy}
-              className=${`flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-full border transition-all ${isCopied ? 'bg-green-50 border-green-200 text-green-600' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'}`}
-            >
-              <${isCopied ? Check : Copy} size=${12} />
-              ${isCopied ? 'Đã chép' : 'Sao chép'}
-            </button>
+            <div className="text-[10px] text-slate-400">VNĐ</div>
           </div>
         </div>
       </div>
     `;
 
+    // App Chính
     const App = () => {
-      const [query, setQuery] = useState('');
       const [activeTab, setActiveTab] = useState('search');
-      const [copiedIndex, setCopiedIndex] = useState(null);
-
-      // Tắt pre-loader khi React mount thành công
-      useEffect(() => {
-        const loader = document.getElementById('pre-loader');
-        if (loader) loader.style.display = 'none';
-      }, []);
-
-      // Logic tìm kiếm an toàn
+      const [query, setQuery] = useState('');
+      const [cart, setCart] = useState([]);
+      
+      // Logic Tìm kiếm: Product Name hoặc Regulation
       const results = useMemo(() => {
-        if (!query.trim()) return [];
+        if (!query.trim()) return DATA_SOURCE;
         const term = query.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
         return DATA_SOURCE.filter(item => {
-          const content = `${item.product_name} ${item.regulation} ${item.category} ${item.notes}`
+          const content = `${item.product_name} ${item.regulation} ${item.category}`
             .toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
           return content.includes(term);
         });
       }, [query]);
 
-      const handleCopy = (item, idx) => {
-        const text = `Báo giá PGL 2026\nSản phẩm: ${item.product_name}\nQuy chuẩn: ${item.regulation}\nGiá: ${item.price_vnd.toLocaleString('vi-VN')} VNĐ`;
-        navigator.clipboard.writeText(text);
-        setCopiedIndex(idx);
-        setTimeout(() => setCopiedIndex(null), 2000);
+      // Logic Giỏ hàng
+      const addToCart = (item) => {
+        setCart(prev => [...prev, item]);
       };
 
+      const removeFromCart = (index) => {
+        setCart(prev => prev.filter((_, i) => i !== index));
+      };
+
+      const clearCart = () => setCart([]);
+
+      const totalVND = cart.reduce((sum, item) => sum + item.price_vnd, 0);
+      const totalUSD = cart.reduce((sum, item) => sum + item.price_usd, 0);
+
       return html`
-        <div className="flex flex-col md:flex-row min-h-screen">
-          <aside className="w-full md:w-64 bg-white border-r border-slate-200 p-6 flex flex-col gap-6 md:fixed md:h-full z-20 no-print">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center text-white shadow-lg">
-                <${Calculator} size=${24} />
+        <div className="flex flex-col md:flex-row h-screen overflow-hidden bg-slate-50">
+          
+          <aside className="w-full md:w-64 bg-white border-r border-slate-200 flex flex-col z-20 shadow-sm no-print">
+            <div className="p-6">
+              <div className="flex items-center gap-3 mb-8">
+                <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-200">
+                  <${Calculator} size=${24} />
+                </div>
+                <div>
+                  <h1 className="font-bold text-lg text-slate-800 tracking-tight">PGL Quote</h1>
+                  <p className="text-[10px] text-slate-500 font-medium">Pricing Assistant v4.0</p>
+                </div>
               </div>
-              <div>
-                <h1 className="font-bold text-lg text-slate-800">PGL Pricing</h1>
-                <p className="text-xs text-slate-500">Offline v3.0 (Safe Mode)</p>
-              </div>
+
+              <nav className="flex flex-col gap-2">
+                <${NavItem} icon=${Search} label="Tra cứu & Chọn" active=${activeTab === 'search'} onClick=${() => setActiveTab('search')} />
+                <${NavItem} icon=${ShoppingCart} label="Giỏ hàng báo giá" count=${cart.length} active=${activeTab === 'cart'} onClick=${() => setActiveTab('cart')} />
+                <${NavItem} icon=${Database} label="Dữ liệu gốc" active=${activeTab === 'data'} onClick=${() => setActiveTab('data')} />
+              </nav>
             </div>
 
-            <nav className="flex flex-col gap-2">
-              <${NavItem} icon=${Search} label="Tra cứu báo giá" active=${activeTab === 'search'} onClick=${() => setActiveTab('search')} />
-              <${NavItem} icon=${Database} label="Dữ liệu gốc" active=${activeTab === 'data'} onClick=${() => setActiveTab('data')} />
-            </nav>
-
-            <div className="mt-auto bg-slate-50 p-4 rounded-xl border border-slate-100 text-xs text-slate-500">
-              <p className="font-bold text-slate-700 mb-1">Trạng thái dữ liệu</p>
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                <span>Sẵn sàng (Offline)</span>
+            <div className="mt-auto p-4 bg-slate-50 border-t border-slate-100">
+              <div className="text-xs font-medium text-slate-500 mb-2">Tổng tạm tính:</div>
+              <div className="text-xl font-black text-blue-600 truncate">
+                ${totalVND.toLocaleString('vi-VN')} <span className="text-xs text-slate-400 font-normal">VNĐ</span>
               </div>
-              <p className="mt-2 pt-2 border-t border-slate-200">Cập nhật: 20/01/2026</p>
             </div>
           </aside>
 
-          <main className="flex-1 md:ml-64 p-4 md:p-8">
-            ${activeTab === 'search' ? html`
-              <div className="max-w-4xl mx-auto animate-fadeIn">
-                <div className="text-center md:text-left mb-8 no-print">
-                  <h1 className="text-3xl font-extrabold text-slate-800 mb-2">Tra cứu dịch vụ</h1>
-                  <p className="text-slate-500">Nhập tên thiết bị (ví dụ: "điều hòa", "pin", "QCVN 134")</p>
-                  
-                  <div className="mt-6 relative group">
-                    <${Search} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500" size=${20} />
-                    <input 
-                      type="text" 
-                      className="w-full pl-12 pr-4 py-4 bg-white border-2 border-slate-200 rounded-2xl focus:border-blue-500 focus:outline-none focus:shadow-lg transition-all text-lg"
-                      placeholder="Tìm kiếm..."
-                      value=${query}
-                      onChange=${e => setQuery(e.target.value)}
-                      autoFocus
-                    />
-                  </div>
-                </div>
-
-                <div className="hidden print-only text-center border-b pb-4 mb-6">
-                  <h2 className="text-2xl font-bold">BÁO GIÁ DỊCH VỤ THỬ NGHIỆM PGL</h2>
-                  <p>Ngày: ${new Date().toLocaleDateString('vi-VN')}</p>
-                </div>
-
-                <div className="space-y-6 pb-20">
-                  ${query && results.length === 0 && html`
-                    <div className="text-center py-20 bg-white rounded-3xl border-dashed border-2 border-slate-200">
-                      <${Box} size=${48} className="mx-auto text-slate-300 mb-4" />
-                      <p className="text-slate-500 font-medium">Không tìm thấy kết quả phù hợp</p>
-                    </div>
-                  `}
-
-                  ${results.length > 0 && html`
-                     <div className="flex justify-between items-center mb-2 no-print">
-                       <span className="text-sm font-bold text-slate-400 uppercase">Kết quả (${results.length})</span>
-                       <button onClick=${() => window.print()} className="flex items-center gap-2 text-sm text-blue-600 font-bold hover:bg-blue-50 px-3 py-1 rounded-lg transition-colors">
-                         <${Printer} size=${16} /> In báo giá
-                       </button>
-                     </div>
-                  `}
-
-                  <div className="grid grid-cols-1 gap-4">
-                    ${results.map((item, idx) => html`
-                      <${PricingCard} 
-                        key=${idx} 
-                        item=${item} 
-                        isCopied=${copiedIndex === idx}
-                        onCopy=${() => handleCopy(item, idx)}
+          <main className="flex-1 flex flex-col h-full overflow-hidden relative">
+            
+            ${activeTab === 'search' && html`
+              <div className="flex flex-col h-full">
+                <div className="bg-white border-b border-slate-200 p-4 md:p-6 shadow-sm z-10">
+                  <div className="max-w-3xl mx-auto w-full">
+                    <h2 className="text-xl font-bold text-slate-800 mb-4">Tra cứu dịch vụ</h2>
+                    <div className="relative group">
+                      <${Search} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500" size=${20} />
+                      <input 
+                        type="text" 
+                        className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-50 transition-all outline-none text-slate-800 placeholder:text-slate-400"
+                        placeholder="Tìm tên thiết bị (Wifi, 4G) hoặc QCVN (117, 134)..."
+                        value=${query}
+                        onChange=${e => setQuery(e.target.value)}
+                        autoFocus
                       />
-                    `)}
+                      ${query && html`
+                        <button onClick=${() => setQuery('')} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                          <${X} size=${16} />
+                        </button>
+                      `}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ` : html`
-              <div className="max-w-4xl mx-auto animate-fadeIn">
-                <h2 className="text-2xl font-bold text-slate-800 mb-6 flex items-center gap-2">
-                  <${Database} size=${24} /> Dữ liệu thô
-                </h2>
-                <div className="bg-slate-900 text-slate-300 p-6 rounded-2xl overflow-x-auto shadow-inner font-mono text-xs leading-relaxed">
-                  ${JSON.stringify(DATA_SOURCE, null, 2)}
+
+                <div className="flex-1 overflow-y-auto p-4 md:p-6 bg-slate-50/50">
+                  <div className="max-w-5xl mx-auto">
+                    <div className="flex items-center justify-between mb-4">
+                      <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                        ${query ? `Tìm thấy ${results.length} kết quả` : 'Tất cả dịch vụ'}
+                      </span>
+                    </div>
+
+                    ${results.length === 0 ? html`
+                      <div className="flex flex-col items-center justify-center py-20 opacity-50">
+                         <${Database} size=${48} className="mb-4 text-slate-300"/>
+                         <p>Không tìm thấy kết quả nào</p>
+                      </div>
+                    ` : html`
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        ${results.map((item, idx) => html`
+                          <${PricingCard} key=${idx} item=${item} onAdd=${addToCart} />
+                        `)}
+                      </div>
+                    `}
+                  </div>
                 </div>
               </div>
             `}
+
+            ${activeTab === 'cart' && html`
+              <div className="flex flex-col h-full bg-white animate-fadeIn">
+                <div className="p-6 border-b border-slate-200 flex justify-between items-center no-print">
+                  <div>
+                    <h2 className="text-2xl font-bold text-slate-800">Bảng kê báo giá</h2>
+                    <p className="text-sm text-slate-500">Danh sách các hạng mục đã chọn</p>
+                  </div>
+                  <div className="flex gap-3">
+                    <button 
+                      onClick=${clearCart}
+                      disabled=${cart.length === 0}
+                      className="px-4 py-2 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg font-medium text-sm disabled:opacity-50 transition-colors"
+                    >
+                      Xóa tất cả
+                    </button>
+                    <button 
+                      onClick=${() => window.print()}
+                      disabled=${cart.length === 0}
+                      className="px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg font-bold text-sm shadow-lg shadow-blue-200 flex items-center gap-2 transition-all disabled:opacity-50 disabled:shadow-none"
+                    >
+                      <${Printer} size=${16} /> In Báo giá
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-6 md:p-8 print:p-0 print:overflow-visible">
+                  <div className="max-w-4xl mx-auto bg-white print:w-full">
+                    
+                    <div className="hidden print-only mb-8 border-b pb-4">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h1 className="text-2xl font-bold uppercase text-slate-900">Bảng Tổng Hợp Báo Giá</h1>
+                          <p className="text-sm text-slate-600 mt-1">Phòng Thử nghiệm Phúc Gia (PGL)</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm text-slate-500">Ngày: ${new Date().toLocaleDateString('vi-VN')}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    ${cart.length === 0 ? html`
+                      <div className="text-center py-20 border-2 border-dashed border-slate-200 rounded-2xl no-print">
+                        <${ShoppingCart} size=${64} className="mx-auto text-slate-200 mb-4" />
+                        <h3 className="text-lg font-bold text-slate-600">Giỏ hàng trống</h3>
+                        <p className="text-slate-400 mb-6">Vui lòng chọn dịch vụ từ tab Tra cứu</p>
+                        <button onClick=${() => setActiveTab('search')} className="px-6 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-700 transition-colors">
+                          Quay lại Tra cứu
+                        </button>
+                      </div>
+                    ` : html`
+                      <table className="w-full text-left border-collapse">
+                        <thead>
+                          <tr className="border-b-2 border-slate-800 text-slate-800 text-sm">
+                            <th className="py-3 font-bold w-12 text-center">STT</th>
+                            <th className="py-3 font-bold">Nội dung / Quy chuẩn</th>
+                            <th className="py-3 font-bold text-right w-40">Đơn giá (VNĐ)</th>
+                            <th className="py-3 font-bold text-center w-12 no-print">Xóa</th>
+                          </tr>
+                        </thead>
+                        <tbody className="text-sm text-slate-700 divide-y divide-slate-100">
+                          ${cart.map((item, idx) => html`
+                            <tr key=${idx} className="group hover:bg-slate-50">
+                              <td className="py-4 text-center text-slate-400">${idx + 1}</td>
+                              <td className="py-4">
+                                <div className="font-bold text-slate-900">${item.product_name}</div>
+                                <div className="text-xs text-slate-500 mt-1 flex gap-2">
+                                  <span className="bg-slate-100 px-1.5 rounded border border-slate-200">${item.regulation}</span>
+                                  <span className="italic text-slate-400">${item.notes}</span>
+                                </div>
+                              </td>
+                              <td className="py-4 text-right font-mono font-medium">
+                                ${item.price_vnd.toLocaleString('vi-VN')}
+                              </td>
+                              <td className="py-4 text-center no-print">
+                                <button 
+                                  onClick=${() => removeFromCart(idx)}
+                                  className="text-slate-300 hover:text-red-500 transition-colors p-1"
+                                >
+                                  <${Trash2} size=${16} />
+                                </button>
+                              </td>
+                            </tr>
+                          `)}
+                        </tbody>
+                        <tfoot className="border-t-2 border-slate-800 font-bold text-slate-900">
+                          <tr>
+                            <td colspan="2" className="py-4 text-right pr-4 uppercase">Tổng cộng</td>
+                            <td className="py-4 text-right text-lg">
+                              ${totalVND.toLocaleString('vi-VN')}
+                            </td>
+                            <td className="no-print"></td>
+                          </tr>
+                          <tr className="text-slate-500 text-xs font-normal">
+                            <td colspan="2" className="py-1 text-right pr-4 italic">Tương đương USD</td>
+                            <td className="py-1 text-right font-mono">
+                              $${totalUSD.toLocaleString('en-US')}
+                            </td>
+                            <td className="no-print"></td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                      
+                      <div className="mt-8 pt-4 border-t border-slate-200 text-xs text-slate-500 italic print-only">
+                        <p>* Báo giá trên chưa bao gồm VAT (5%).</p>
+                        <p>* Giá trị báo giá có hiệu lực trong vòng 30 ngày.</p>
+                      </div>
+                    `}
+                  </div>
+                </div>
+              </div>
+            `}
+
+            ${activeTab === 'data' && html`
+              <div className="flex-1 overflow-auto p-6 bg-slate-900 text-slate-300 font-mono text-xs">
+                <pre>${JSON.stringify(DATA_SOURCE, null, 2)}</pre>
+              </div>
+            `}
+
           </main>
         </div>
       `;
     };
 
-    // Mount App
     const root = ReactDOM.createRoot(document.getElementById('root'));
     root.render(html`<${App} />`);
   </script>
